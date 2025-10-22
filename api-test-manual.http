@@ -1,0 +1,377 @@
+### Docms API Manual Testing Script
+### Base URL
+@baseUrl = http://localhost:3000
+@contentType = application/json
+
+### Variables (will be set after requests)
+@adminToken =
+@editorToken =
+@authorToken =
+@categoryId =
+@tagId =
+@postId =
+@productId =
+
+###############################################
+### 1. Authentication Module Tests
+###############################################
+
+### 1.1 Register ADMIN User
+POST {{baseUrl}}/auth/register
+Content-Type: {{contentType}}
+
+{
+  "email": "admin@test.com",
+  "password": "Admin123456",
+  "role": "ADMIN"
+}
+
+### 1.2 Register EDITOR User
+POST {{baseUrl}}/auth/register
+Content-Type: {{contentType}}
+
+{
+  "email": "editor@test.com",
+  "password": "Editor123456",
+  "role": "EDITOR"
+}
+
+### 1.3 Register AUTHOR User
+POST {{baseUrl}}/auth/register
+Content-Type: {{contentType}}
+
+{
+  "email": "author@test.com",
+  "password": "Author123456",
+  "role": "AUTHOR"
+}
+
+### 1.4 Login as ADMIN
+POST {{baseUrl}}/auth/login
+Content-Type: {{contentType}}
+
+{
+  "email": "admin@test.com",
+  "password": "Admin123456"
+}
+
+### 1.5 Get Profile (需要token)
+GET {{baseUrl}}/auth/profile
+Authorization: Bearer {{adminToken}}
+
+### 1.6 Test Wrong Password
+POST {{baseUrl}}/auth/login
+Content-Type: {{contentType}}
+
+{
+  "email": "admin@test.com",
+  "password": "WrongPassword"
+}
+
+###############################################
+### 2. Category Module Tests
+###############################################
+
+### 2.1 Create Category
+POST {{baseUrl}}/categories
+Content-Type: {{contentType}}
+Authorization: Bearer {{adminToken}}
+
+{
+  "name": "技术教程",
+  "slug": "tech-tutorials",
+  "description": "技术相关教程",
+  "order": 1
+}
+
+### 2.2 Get All Categories
+GET {{baseUrl}}/categories
+
+### 2.3 Get Category Tree
+GET {{baseUrl}}/categories/tree
+
+### 2.4 Get Category by ID
+GET {{baseUrl}}/categories/{{categoryId}}
+
+### 2.5 Update Category
+PUT {{baseUrl}}/categories/{{categoryId}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{adminToken}}
+
+{
+  "name": "技术教程 - 更新版",
+  "description": "更新后的描述"
+}
+
+### 2.6 Test Duplicate Slug (should fail)
+POST {{baseUrl}}/categories
+Content-Type: {{contentType}}
+Authorization: Bearer {{adminToken}}
+
+{
+  "name": "另一个分类",
+  "slug": "tech-tutorials"
+}
+
+###############################################
+### 3. Tag Module Tests
+###############################################
+
+### 3.1 Create Tag
+POST {{baseUrl}}/tags
+Content-Type: {{contentType}}
+Authorization: Bearer {{editorToken}}
+
+{
+  "name": "水培技术",
+  "slug": "hydroponics"
+}
+
+### 3.2 Get All Tags
+GET {{baseUrl}}/tags
+
+### 3.3 Search Tags
+GET {{baseUrl}}/tags?search=水培
+
+### 3.4 Get Tag by ID
+GET {{baseUrl}}/tags/{{tagId}}
+
+### 3.5 Update Tag
+PUT {{baseUrl}}/tags/{{tagId}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{editorToken}}
+
+{
+  "name": "水培技术 - 更新版"
+}
+
+###############################################
+### 4. Post Module Tests
+###############################################
+
+### 4.1 Create Post as AUTHOR
+POST {{baseUrl}}/posts
+Content-Type: {{contentType}}
+Authorization: Bearer {{authorToken}}
+
+{
+  "title": "水培技术入门指南",
+  "slug": "hydroponics-guide",
+  "summary": "了解水培种植的基础知识",
+  "content": {
+    "type": "html",
+    "data": "<h1>水培技术入门</h1><p>这是一篇关于水培技术的文章...</p>"
+  },
+  "status": "DRAFT",
+  "categoryIds": ["{{categoryId}}"],
+  "tagIds": ["{{tagId}}"],
+  "seoTitle": "水培技术入门指南 | 水培网",
+  "seoDescription": "详细的水培技术入门教程",
+  "seoKeywords": ["水培", "种植", "技术"]
+}
+
+### 4.2 Get All Posts
+GET {{baseUrl}}/posts?page=1&limit=10
+
+### 4.3 Get Post by ID
+GET {{baseUrl}}/posts/{{postId}}
+
+### 4.4 Update Post (as author)
+PATCH {{baseUrl}}/posts/{{postId}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{authorToken}}
+
+{
+  "title": "水培技术入门指南 - 更新版",
+  "summary": "更新后的摘要"
+}
+
+### 4.5 Search Posts
+GET {{baseUrl}}/posts?search=水培
+
+### 4.6 Filter by Category
+GET {{baseUrl}}/posts?categoryId={{categoryId}}
+
+### 4.7 Publish Post (as ADMIN)
+POST {{baseUrl}}/posts/{{postId}}/publish
+Authorization: Bearer {{adminToken}}
+
+### 4.8 Try to Publish (as AUTHOR - should fail)
+POST {{baseUrl}}/posts/{{postId}}/publish
+Authorization: Bearer {{authorToken}}
+
+###############################################
+### 5. Product Module Tests
+###############################################
+
+### 5.1 Create Product as EDITOR
+POST {{baseUrl}}/products
+Content-Type: {{contentType}}
+Authorization: Bearer {{editorToken}}
+
+{
+  "name": "智能水培系统 Pro",
+  "slug": "smart-hydroponic-pro",
+  "summary": "专业级智能水培种植系统",
+  "description": {
+    "type": "html",
+    "data": "<h2>产品介绍</h2><p>专业级智能水培系统...</p>"
+  },
+  "specs": {
+    "size": "120x60x180cm",
+    "capacity": "48 plants",
+    "power": "200W",
+    "weight": "50kg",
+    "material": "食品级ABS+PC"
+  },
+  "price": 2999.00,
+  "categoryId": "{{categoryId}}",
+  "tagIds": ["{{tagId}}"],
+  "isActive": true,
+  "isFeatured": true,
+  "meta": {
+    "title": "智能水培系统 Pro | 产品中心",
+    "description": "专业级智能水培系统",
+    "keywords": ["水培", "智能", "种植"]
+  }
+}
+
+### 5.2 Get All Products
+GET {{baseUrl}}/products?page=1&limit=12
+
+### 5.3 Get Product by ID
+GET {{baseUrl}}/products/{{productId}}
+
+### 5.4 Filter by Price Range
+GET {{baseUrl}}/products?minPrice=2000&maxPrice=3000
+
+### 5.5 Search Products
+GET {{baseUrl}}/products?search=智能
+
+### 5.6 Toggle Active Status (as ADMIN)
+POST {{baseUrl}}/products/{{productId}}/toggle-active
+Authorization: Bearer {{adminToken}}
+
+### 5.7 Try Toggle (as EDITOR - should fail)
+POST {{baseUrl}}/products/{{productId}}/toggle-active
+Authorization: Bearer {{editorToken}}
+
+###############################################
+### 6. Permissions Module Tests
+###############################################
+
+### 6.1 Get All Permissions
+GET {{baseUrl}}/permissions
+Authorization: Bearer {{adminToken}}
+
+### 6.2 Get Permission Hierarchy
+GET {{baseUrl}}/permissions/hierarchy
+Authorization: Bearer {{adminToken}}
+
+### 6.3 Check Role Permissions
+GET {{baseUrl}}/permissions/check/ADMIN
+Authorization: Bearer {{adminToken}}
+
+###############################################
+### 7. Blocks Module Tests
+###############################################
+
+### 7.1 Get All Block Types
+GET {{baseUrl}}/blocks/types
+Authorization: Bearer {{adminToken}}
+
+### 7.2 Get Block Type Details
+GET {{baseUrl}}/blocks/types/Hero
+Authorization: Bearer {{adminToken}}
+
+### 7.3 Validate Block Data
+POST {{baseUrl}}/blocks/validate
+Content-Type: {{contentType}}
+Authorization: Bearer {{adminToken}}
+
+{
+  "type": "Hero",
+  "props": {
+    "title": "欢迎使用水培系统",
+    "subtitle": "智能化种植解决方案",
+    "backgroundImage": "https://example.com/image.jpg",
+    "ctaText": "立即开始",
+    "ctaLink": "/products"
+  }
+}
+
+### 7.4 Validate Invalid Block Data
+POST {{baseUrl}}/blocks/validate
+Content-Type: {{contentType}}
+Authorization: Bearer {{adminToken}}
+
+{
+  "type": "Hero",
+  "props": {
+    "title": ""
+  }
+}
+
+### 7.5 Get Block Categories
+GET {{baseUrl}}/blocks/categories
+Authorization: Bearer {{adminToken}}
+
+###############################################
+### 8. Site Module Tests
+###############################################
+
+### 8.1 Get Site Config
+GET {{baseUrl}}/site
+
+### 8.2 Update Site Config (as ADMIN)
+PUT {{baseUrl}}/site
+Content-Type: {{contentType}}
+Authorization: Bearer {{adminToken}}
+
+{
+  "name": "水培技术网",
+  "url": "https://hydroponics.com",
+  "description": "专业水培技术分享平台",
+  "logo": "https://example.com/logo.png"
+}
+
+### 8.3 Get Theme Schema
+GET {{baseUrl}}/site/theme/schema
+
+###############################################
+### 9. Menu Module Tests
+###############################################
+
+### 9.1 Create Menu Item
+POST {{baseUrl}}/menu
+Content-Type: {{contentType}}
+Authorization: Bearer {{adminToken}}
+
+{
+  "label": "首页",
+  "sectionType": "PAGE",
+  "order": 1,
+  "isVisible": true
+}
+
+### 9.2 Get All Menu Items
+GET {{baseUrl}}/menu
+Authorization: Bearer {{adminToken}}
+
+### 9.3 Get Menu Tree
+GET {{baseUrl}}/menu/tree
+Authorization: Bearer {{adminToken}}
+
+###############################################
+### Test Summary
+###############################################
+
+# Total Tests: ~50
+# Modules: 9
+# Test Types:
+#   - Authentication & Authorization
+#   - CRUD Operations
+#   - Permission Controls
+#   - Data Validation
+#   - Search & Filtering
+#   - Relationship Management

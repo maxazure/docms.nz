@@ -1,0 +1,66 @@
+# Docms monorepo .gitignore (API + Admin + Frontend)
+
+# OS & Editor artifacts
+.DS_Store
+Thumbs.db
+Desktop.ini
+.idea/
+*.swp
+*.swo
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Node modules
+node_modules/
+**/node_modules/
+
+# Build outputs
+build/
+**/build/
+dist/
+**/dist/
+dist-ssr/
+
+# TypeScript incremental build info
+*.tsbuildinfo
+**/*.tsbuildinfo
+
+# Test coverage
+coverage/
+**/coverage/
+**/lcov-report/
+coverage-final.json
+lcov.info
+clover.xml
+
+# Environment files
+.env
+.env.*
+**/.env
+**/.env.*
+
+# Admin (Vite/Vue 3)
+admin/dist/
+admin/.vite/
+admin/.cache/
+
+# API (NestJS)
+api/dist/
+api/tsconfig.build.tsbuildinfo
+
+# Prisma & local SQLite database
+api/prisma/dev.db
+
+# Uploads & generated media
+uploads/
+**/uploads/
+
+# Test artifacts
+api-test-output*.log
+api-test-results.json

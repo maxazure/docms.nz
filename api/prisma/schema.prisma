@@ -1,0 +1,308 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// User and Authentication
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  displayName  String?
+  role         UserRole @default(VIEWER)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  posts         Post[]
+  pageVersions  PageVersion[]
+  auditLogs     AuditLog[]
+
+  @@map("users")
+}
+
+enum UserRole {
+  OWNER
+  ADMIN
+  EDITOR
+  AUTHOR
+  VIEWER
+}
+
+// Audit Logging
+model AuditLog {
+  id           String   @id @default(cuid())
+  userId       String?
+  action       String
+  resourceType String
+  resourceId   String?
+  payload      Json?
+  createdAt    DateTime @default(now())
+
+  // Relations
+  user User? @relation(fields: [userId], references: [id])
+
+  @@map("audit_logs")
+}
+
+// Site Configuration (single site system)
+model Site {
+  id          String   @id @default(cuid())
+  name        String
+  domain      String   @unique
+  locale      String   @default("en")
+  themeTokens Json?    // Design tokens: colors, fonts, spacing, etc.
+  settings    Json?    // Global settings: logo, social links, etc.
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("sites")
+}
+
+// Menu and Navigation
+model MenuItem {
+  id          String      @id @default(cuid())
+  menuCode    String      // "main", "footer", etc.
+  label       String
+  slug        String      @unique
+  type        MenuItemType
+  linkType    LinkType    @default(INTERNAL)
+  linkTarget  String?     // External URL or internal resource ID
+  parentId    String?
+  order       Int         @default(0)
+  icon        String?
+  isVisible   Boolean     @default(true)
+  isActive    Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  // Relations
+  parent   MenuItem?  @relation("MenuHierarchy", fields: [parentId], references: [id])
+  children MenuItem[] @relation("MenuHierarchy")
+  page     Page?
+  posts    Post[]
+  products Product[]
+
+  @@map("menu_items")
+}
+
+enum MenuItemType {
+  PAGE      // Single page with blocks
+  POST_LIST // Article/news list
+  PRODUCT   // Product catalog
+}
+
+enum LinkType {
+  INTERNAL  // Link to internal content
+  EXTERNAL  // External URL
+  CUSTOM    // Custom link
+}
+
+// Content Categories
+model Category {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  parentId  String?
+  order     Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  parent    Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children  Category[] @relation("CategoryHierarchy")
+  postCategories PostCategory[]
+  products  Product[]
+
+  @@map("categories")
+}
+
+// Tags
+model Tag {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+
+  // Relations
+  postTags PostTag[]
+
+  @@map("tags")
+}
+
+// Pages with Blocks
+model Page {
+  id        String   @id @default(cuid())
+  menuItemId String  @unique
+  title     String
+  slug      String   @unique
+  blocks    Json     // Array of blocks: [{id, type, props, order, visibility}]
+  status    ContentStatus @default(DRAFT)
+  publishedAt DateTime?
+  meta      Json?    // SEO meta: title, description, og tags, etc.
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  menuItem MenuItem @relation(fields: [menuItemId], references: [id])
+  versions PageVersion[]
+
+  @@map("pages")
+}
+
+model PageVersion {
+  id        String   @id @default(cuid())
+  pageId    String
+  blocks    Json     // Snapshot of blocks at this version
+  createdBy String?
+  createdAt DateTime @default(now())
+
+  // Relations
+  page  Page @relation(fields: [pageId], references: [id])
+  user  User? @relation(fields: [createdBy], references: [id])
+
+  @@map("page_versions")
+}
+
+// Posts (Articles/News)
+model Post {
+  id         String   @id @default(cuid())
+  menuItemId String?
+  title      String
+  slug       String   @unique
+  summary    String?
+  content    Json?    // Rich text or block content
+  coverImageId String?
+  status     ContentStatus @default(DRAFT)
+  publishedAt DateTime?
+  authorId   String
+  meta       Json?    // SEO meta information
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
+  menuItem   MenuItem? @relation(fields: [menuItemId], references: [id])
+  author     User @relation(fields: [authorId], references: [id])
+  postCategories PostCategory[]
+  postTags PostTag[]
+  coverImage Media? @relation("PostCoverImage", fields: [coverImageId], references: [id])
+
+  @@map("posts")
+}
+
+// Many-to-Many relations for Posts
+model PostCategory {
+  postId     String
+  categoryId String
+
+  post     Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([postId, categoryId])
+  @@map("post_categories")
+}
+
+model PostTag {
+  postId String
+  tagId  String
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  tag  Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([postId, tagId])
+  @@map("post_tags")
+}
+
+// Products
+model Product {
+  id         String   @id @default(cuid())
+  menuItemId String?
+  name       String
+  slug       String   @unique
+  summary    String?
+  description Json?   // Rich content or blocks
+  specs      Json?    // Product specifications: {key: value} pairs
+  gallery    Json?    // Array of media IDs
+  price      Float?
+  categoryId String?
+  tags       Json?    // Array of tag names or IDs
+  isActive   Boolean  @default(true)
+  isFeatured Boolean  @default(false)
+  meta       Json?    // SEO meta
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
+  menuItem   MenuItem?  @relation(fields: [menuItemId], references: [id])
+  category   Category? @relation(fields: [categoryId], references: [id])
+
+  @@map("products")
+}
+
+// Media Library
+model Media {
+  id         String   @id @default(cuid())
+  filename   String
+  originalName String
+  mime       String
+  size       Int
+  width      Int?
+  height     Int?
+  alt        String?
+  storageKey String   // File path or S3 key
+  meta       Json?    // EXIF, color space, etc.
+  createdAt  DateTime @default(now())
+
+  // Relations
+  postsCoverImage Post[] @relation("PostCoverImage")
+
+  @@map("media")
+}
+
+// Form Submissions
+model FormSubmission {
+  id        String   @id @default(cuid())
+  formCode  String   // Form identifier like "contact", "inquiry"
+  payload   Json     // Form data: {name, email, message, etc.}
+  ip        String?
+  ua        String?  // User agent
+  spamScore Float?   // Spam detection score
+  createdAt DateTime @default(now())
+
+  @@map("form_submissions")
+}
+
+enum ContentStatus {
+  DRAFT
+  PUBLISHED
+}
+
+// Page status alias for consistency
+enum PageStatus {
+  DRAFT
+  PUBLISHED
+}
+
+// Block types for page builder
+enum BlockType {
+  HERO
+  TEXT
+  IMAGE_GALLERY
+  FEATURES
+  CTA
+  FAQ
+  PRODUCT_SHOWCASE
+  TESTIMONIALS
+  CONTACT_FORM
+  MAP
+  VIDEO
+  DIVIDER
+}

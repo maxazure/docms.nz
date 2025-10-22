@@ -28,9 +28,6 @@
       :collapsed-width="64"
       :collapsed-icon-size="22"
       :options="menuOptions"
-      :render-label="renderMenuLabel"
-      :render-icon="renderMenuIcon"
-      :expand-icon="renderExpandIcon"
     />
   </n-layout-sider>
 </template>
@@ -106,10 +103,14 @@ const getRoutePathByType = (menuItem: MenuItem): string => {
 
 // 将 MenuItem 转换为 Naive UI MenuOption
 const convertToMenuOption = (item: MenuItem): MenuOption => {
+  const iconName = item.icon || 'document'
+  const IconComponent = iconMap[iconName] || DocumentTextOutline
+
   const option: MenuOption = {
     label: item.label,
     key: getRoutePathByType(item),
-    icon: item.icon || 'document'
+    // Convert icon string to render function immediately
+    icon: () => h(NIcon, null, { default: () => h(IconComponent) })
   }
 
   if (item.children && item.children.length > 0) {
@@ -124,12 +125,13 @@ const menuOptions = computed<MenuOption[]>(() => {
   const options: MenuOption[] = []
 
   // 一级：网站栏目（动态生成）
-  if (menuStore.menuTree.length > 0) {
+  const mainMenuTree = menuStore.mainMenuTree || []
+  if (mainMenuTree.length > 0) {
     options.push({
       type: 'group',
       label: '网站栏目',
       key: 'website-columns',
-      children: menuStore.menuTree.map(convertToMenuOption)
+      children: mainMenuTree.map(convertToMenuOption)
     })
   }
 
@@ -142,12 +144,12 @@ const menuOptions = computed<MenuOption[]>(() => {
       {
         label: '媒体库',
         key: '/media',
-        icon: 'image'
+        icon: () => h(NIcon, null, { default: () => h(ImageOutline) })
       },
       {
         label: '留言管理',
         key: '/forms',
-        icon: 'chatbubble'
+        icon: () => h(NIcon, null, { default: () => h(ChatbubbleOutline) })
       }
     ]
   })
@@ -161,52 +163,28 @@ const menuOptions = computed<MenuOption[]>(() => {
       {
         label: '菜单管理',
         key: '/menu',
-        icon: 'menu'
+        icon: () => h(NIcon, null, { default: () => h(MenuOutline) })
       },
       {
         label: '站点设置',
         key: '/site',
-        icon: 'settings'
+        icon: () => h(NIcon, null, { default: () => h(SettingsOutline) })
       },
       {
         label: '用户与权限',
         key: '/users',
-        icon: 'people'
+        icon: () => h(NIcon, null, { default: () => h(PeopleOutline) })
       },
       {
         label: '审计日志',
         key: '/audit',
-        icon: 'document'
+        icon: () => h(NIcon, null, { default: () => h(DocumentTextOutline) })
       }
     ]
   })
 
   return options
 })
-
-// 渲染菜单标签
-const renderMenuLabel = (option: MenuOption) => {
-  if (option.type === 'group') {
-    return option.label as string
-  }
-  return () => h('span', option.label as string)
-}
-
-// 渲染菜单图标
-const renderMenuIcon = (option: MenuOption) => {
-  if (option.type === 'group') return null
-  const iconName = (option.icon as string) || 'document'
-  const IconComponent = iconMap[iconName] || DocumentTextOutline
-  return () => h(NIcon, null, { default: () => h(IconComponent) })
-}
-
-// 渲染展开图标
-const renderExpandIcon = () => {
-  return () => h(NIcon, null, { default: () => h(ChevronDownOutline) })
-}
-
-// 初始化时加载菜单
-menuStore.fetchMenu()
 </script>
 
 <style scoped>

@@ -141,31 +141,43 @@ const handleLogin = async () => {
   align-items: center;
   min-height: 100vh;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 20px;
 }
 
 .login-card {
-  width: 400px;
-  padding: 20px;
-  border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 480px;
+  padding: 48px 40px;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  background: var(--n-color);
+}
+
+@media (max-width: 640px) {
+  .login-card {
+    max-width: 400px;
+    padding: 32px 24px;
+  }
 }
 
 .login-header {
   text-align: center;
-  margin-bottom: 32px;
+  margin-bottom: 40px;
 }
 
 .login-header h1 {
-  font-size: 28px;
+  font-size: 32px;
   font-weight: 600;
-  margin: 0 0 8px 0;
+  margin: 0 0 12px 0;
   color: var(--n-title-text-color);
+  letter-spacing: -0.5px;
 }
 
 .login-header p {
-  font-size: 14px;
+  font-size: 15px;
   margin: 0;
   color: var(--n-text-color-3);
+  font-weight: 400;
 }
 
 .login-options {
@@ -176,7 +188,7 @@ const handleLogin = async () => {
 }
 
 .login-footer {
-  margin-top: 24px;
+  margin-top: 32px;
   text-align: center;
 }
 </style>

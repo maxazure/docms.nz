@@ -46,8 +46,7 @@ onMounted(async () => {
 }
 
 html,
-body,
-#app {
+body {
   height: 100%;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
     'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
@@ -55,6 +54,7 @@ body,
 }
 
 #app {
+  height: 100%;
   color: #333;
   background-color: #f5f5f5;
 }

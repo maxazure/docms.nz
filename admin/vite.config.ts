@@ -41,57 +41,12 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      '/auth': {
+      // Only proxy actual API requests (with /api prefix or specific endpoints)
+      // Frontend route names can overlap, so we need to be selective
+      '/api': {
         target: 'http://localhost:3000',
-        changeOrigin: true
-      },
-      '/menu-items': {
-        target: 'http://localhost:3000',
-        changeOrigin: true
-      },
-      '/pages': {
-        target: 'http://localhost:3000',
-        changeOrigin: true
-      },
-      '/posts': {
-        target: 'http://localhost:3000',
-        changeOrigin: true
-      },
-      '/products': {
-        target: 'http://localhost:3000',
-        changeOrigin: true
-      },
-      '/media': {
-        target: 'http://localhost:3000',
-        changeOrigin: true
-      },
-      '/categories': {
-        target: 'http://localhost:3000',
-        changeOrigin: true
-      },
-      '/tags': {
-        target: 'http://localhost:3000',
-        changeOrigin: true
-      },
-      '/forms': {
-        target: 'http://localhost:3000',
-        changeOrigin: true
-      },
-      '/site': {
-        target: 'http://localhost:3000',
-        changeOrigin: true
-      },
-      '/users': {
-        target: 'http://localhost:3000',
-        changeOrigin: true
-      },
-      '/search': {
-        target: 'http://localhost:3000',
-        changeOrigin: true
-      },
-      '/blocks': {
-        target: 'http://localhost:3000',
-        changeOrigin: true
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, '')
       }
     }
   }

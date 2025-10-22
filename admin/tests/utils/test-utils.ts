@@ -1,7 +1,25 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { mount, VueWrapper } from '@vue/test-utils'
 import { createRouter, createMemoryHistory, Router } from 'vue-router'
+import { vi } from 'vitest'
 import type { Component } from 'vue'
+
+// Mock Naive UI's useMessage
+const mockMessage = {
+  success: vi.fn(),
+  error: vi.fn(),
+  warning: vi.fn(),
+  info: vi.fn(),
+  loading: vi.fn()
+}
+
+vi.mock('naive-ui', async () => {
+  const actual = await vi.importActual('naive-ui')
+  return {
+    ...actual,
+    useMessage: () => mockMessage
+  }
+})
 
 /**
  * Create a fresh Pinia instance for testing

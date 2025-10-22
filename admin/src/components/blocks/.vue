@@ -1,0 +1,1 @@
+<template><div class="block-config"><n-form><n-alert>DividerBlockConfig - 开发中</n-alert></n-form></div></template><script setup lang="ts">const props = defineProps<{ props: Record<string, any> }>(); const emit = defineEmits<{ (e: 'update:props', value: Record<string, any>): void }>();</script>

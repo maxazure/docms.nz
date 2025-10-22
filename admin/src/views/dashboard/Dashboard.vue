@@ -173,6 +173,10 @@ import {
 } from '@vicons/ionicons5'
 import { useAuthStore } from '@/stores/auth'
 
+defineOptions({
+  name: 'Dashboard'
+})
+
 const router = useRouter()
 const authStore = useAuthStore()
 
@@ -181,8 +185,10 @@ const userName = computed(() => authStore.user?.displayName || '管理员')
 
 <style scoped>
 .dashboard {
-  max-width: 1400px;
+  width: 100%;
+  max-width: 1600px;
   margin: 0 auto;
+  padding: 0;
 }
 
 .stat-card {
@@ -193,5 +199,9 @@ const userName = computed(() => authStore.user?.displayName || '管理员')
 .stat-card :deep(.n-statistic__label),
 .stat-card :deep(.n-statistic__value) {
   color: white !important;
+}
+
+.stat-card :deep(.n-icon) {
+  color: rgba(255, 255, 255, 0.9);
 }
 </style>

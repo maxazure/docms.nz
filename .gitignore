@@ -79,17 +79,23 @@ api-test-results.json
 **/*_FIX_SUMMARY.md
 **/*_INVESTIGATION.md
 **/*_DEVELOPMENT_SUMMARY.md
+**/*_TEST_REPORT*.md
 
 # Temporary/debug files
 nul
 **/nul
 
 # Chinese filename artifacts
-"\346\217\220\347\244\272\350\257\215.md"
+**/提示词.md
+提示词.md
 
-# Optional: Keep implementation plans and final summaries in version control
-# Uncomment below to ignore these as well:
-# **/ADMIN_IMPLEMENTATION_PLAN.md
-# **/FINAL_*.md
-# **/*_SUMMARY.md
-# **/*_PLAN.md
+# All development summaries, plans, and reports
+**/*_SUMMARY.md
+**/ADMIN_FINAL_SUMMARY*.md
+**/FINAL_*.md
+**/*_PLAN.md
+**/*_FIX.md
+**/*_ENHANCEMENT.md
+**/ARTICLE_*.md
+admin/*.png
+admin/**/*.png

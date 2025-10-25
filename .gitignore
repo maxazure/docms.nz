@@ -64,3 +64,32 @@ uploads/
 # Test artifacts
 api-test-output*.log
 api-test-results.json
+
+# Claude Code local settings
+.claude/settings.local.json
+
+# Development documentation and test reports
+# (These are session-specific and shouldn't be in version control)
+**/SESSION_TEST_SUMMARY*.md
+**/DEVELOPMENT_PROGRESS*.md
+**/FUNCTIONAL_TEST_REPORT*.md
+**/TEST_SUMMARY*.md
+**/*_TEST_SUCCESS.png
+**/*_FIXED*.png
+**/*_FIX_SUMMARY.md
+**/*_INVESTIGATION.md
+**/*_DEVELOPMENT_SUMMARY.md
+
+# Temporary/debug files
+nul
+**/nul
+
+# Chinese filename artifacts
+"\346\217\220\347\244\272\350\257\215.md"
+
+# Optional: Keep implementation plans and final summaries in version control
+# Uncomment below to ignore these as well:
+# **/ADMIN_IMPLEMENTATION_PLAN.md
+# **/FINAL_*.md
+# **/*_SUMMARY.md
+# **/*_PLAN.md

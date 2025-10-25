@@ -20,70 +20,87 @@ import type { ListResponse } from '@/types'
 
 // ==================== Posts ====================
 
-export function getPostList(params?: PostListQuery): Promise<ListResponse<Post>> {
-  return http.get('/posts', { params })
+export async function getPostList(params?: PostListQuery): Promise<ListResponse<Post>> {
+  const response = await http.get('/posts', { params })
+  return response.data
 }
 
-export function getPost(id: string): Promise<Post> {
-  return http.get(`/api/posts/${id}`)
+export async function getPost(id: string): Promise<Post> {
+  const response = await http.get(`/posts/${id}`)
+  return response.data
 }
 
-export function createPost(data: CreatePostDto): Promise<Post> {
-  return http.post('/posts', data)
+export async function createPost(data: CreatePostDto): Promise<Post> {
+  const response = await http.post('/posts', data)
+  return response.data
 }
 
-export function updatePost(id: string, data: UpdatePostDto): Promise<Post> {
-  return http.put(`/api/posts/${id}`, data)
+export async function updatePost(id: string, data: UpdatePostDto): Promise<Post> {
+  const response = await http.put(`/posts/${id}`, data)
+  return response.data
 }
 
-export function deletePost(id: string): Promise<void> {
-  return http.delete(`/api/posts/${id}`)
+export async function deletePost(id: string): Promise<void> {
+  const response = await http.delete(`/posts/${id}`)
+  return response.data
 }
 
-export function publishPost(id: string): Promise<Post> {
-  return http.post(`/api/posts/${id}/publish`)
+export async function publishPost(id: string): Promise<Post> {
+  const response = await http.post(`/posts/${id}/publish`)
+  return response.data
 }
 
-export function unpublishPost(id: string): Promise<Post> {
-  return http.post(`/api/posts/${id}/unpublish`)
+export async function unpublishPost(id: string): Promise<Post> {
+  const response = await http.post(`/posts/${id}/unpublish`)
+  return response.data
 }
 
 // ==================== Categories ====================
 
-export function getCategoryList(params?: CategoryListQuery): Promise<Category[]> {
-  return http.get('/posts/categories', { params })
+export async function getCategoryList(params?: CategoryListQuery): Promise<Category[]> {
+  const response = await http.get('/posts/categories', { params })
+  // Unwrap the API response: response.data = {success: true, data: [...]}
+  return response.data.data || []
 }
 
-export function getCategory(id: string): Promise<Category> {
-  return http.get(`/api/posts/categories/${id}`)
+export async function getCategory(id: string): Promise<Category> {
+  const response = await http.get(`/api/posts/categories/${id}`)
+  return response.data
 }
 
-export function createCategory(data: CreateCategoryDto): Promise<Category> {
-  return http.post('/posts/categories', data)
+export async function createCategory(data: CreateCategoryDto): Promise<Category> {
+  const response = await http.post('/posts/categories', data)
+  return response.data
 }
 
-export function updateCategory(id: string, data: UpdateCategoryDto): Promise<Category> {
-  return http.put(`/api/posts/categories/${id}`, data)
+export async function updateCategory(id: string, data: UpdateCategoryDto): Promise<Category> {
+  const response = await http.put(`/api/posts/categories/${id}`, data)
+  return response.data
 }
 
-export function deleteCategory(id: string): Promise<void> {
-  return http.delete(`/api/posts/categories/${id}`)
+export async function deleteCategory(id: string): Promise<void> {
+  const response = await http.delete(`/api/posts/categories/${id}`)
+  return response.data
 }
 
 // ==================== Tags ====================
 
-export function getTagList(): Promise<Tag[]> {
-  return http.get('/posts/tags')
+export async function getTagList(): Promise<Tag[]> {
+  const response = await http.get('/posts/tags')
+  return response.data.data || []
 }
 
-export function getTag(id: string): Promise<Tag> {
-  return http.get(`/api/posts/tags/${id}`)
+export async function getTag(id: string): Promise<Tag> {
+  const response = await http.get(`/api/posts/tags/${id}`)
+  return response.data
 }
 
-export function createTag(data: CreateTagDto): Promise<Tag> {
-  return http.post('/posts/tags', data)
+export async function createTag(data: CreateTagDto): Promise<Tag> {
+  const response = await http.post('/posts/tags', data)
+  return response.data
 }
 
-export function deleteTag(id: string): Promise<void> {
-  return http.delete(`/api/posts/tags/${id}`)
+export async function deleteTag(id: string): Promise<void> {
+  const response = await http.delete(`/api/posts/tags/${id}`)
+  return response.data
 }

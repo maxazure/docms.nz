@@ -1,34 +1,70 @@
 import { http } from '@/utils/request'
 import type { User, RolePermissions, ListResponse } from '@/types'
 
-export function getUserList(params?: any): Promise<ListResponse<User>> {
-  return http.get('users', { params })
+export interface UserListQuery {
+  page?: number
+  limit?: number
+  search?: string
+  role?: string
 }
 
-export function getUser(id: string): Promise<User> {
-  return http.get(`/api/users/${id}`)
+export interface CreateUserData {
+  email: string
+  password: string
+  displayName: string
+  role: string
 }
 
-export function createUser(data: Partial<User>): Promise<User> {
-  return http.post('users', data)
+export interface UpdateUserData {
+  email?: string
+  password?: string
+  displayName?: string
+  role?: string
 }
 
-export function updateUser(id: string, data: Partial<User>): Promise<User> {
-  return http.put(`/api/users/${id}`, data)
+// Get user list with pagination and filters
+export async function getUserList(params?: UserListQuery): Promise<ListResponse<User>> {
+  const response = await http.get<any>('/users', { params })
+  return response.data.data
 }
 
-export function deleteUser(id: string): Promise<void> {
-  return http.delete(`/api/users/${id}`)
+// Get single user by ID
+export async function getUser(id: string): Promise<User> {
+  const response = await http.get<any>(`/users/${id}`)
+  return response.data.data
 }
 
-export function toggleUserActive(id: string): Promise<User> {
-  return http.post(`/api/users/${id}/toggle-active`)
+// Create new user
+export async function createUser(data: CreateUserData): Promise<User> {
+  const response = await http.post<any>('/users', data)
+  return response.data.data
 }
 
-export function getRolePermissions(): Promise<RolePermissions[]> {
-  return http.get('roles/permissions')
+// Update user
+export async function updateUser(id: string, data: UpdateUserData): Promise<User> {
+  const response = await http.put<any>(`/users/${id}`, data)
+  return response.data.data
 }
 
-export function updateRolePermissions(role: string, permissions: any): Promise<RolePermissions> {
-  return http.put(`/api/roles/${role}/permissions`, permissions)
+// Delete user
+export async function deleteUser(id: string): Promise<void> {
+  await http.delete(`/users/${id}`)
+}
+
+// Toggle user active status
+export async function toggleUserActive(id: string): Promise<User> {
+  const response = await http.post<any>(`/users/${id}/toggle-active`)
+  return response.data.data
+}
+
+// Get role permissions (future feature)
+export async function getRolePermissions(): Promise<RolePermissions[]> {
+  const response = await http.get<any>('/permissions')
+  return response.data.data
+}
+
+// Update role permissions (future feature)
+export async function updateRolePermissions(role: string, permissions: any): Promise<RolePermissions> {
+  const response = await http.put<any>(`/permissions/${role}`, permissions)
+  return response.data.data
 }

@@ -13,11 +13,20 @@ const request: AxiosInstance = axios.create({
 // 请求拦截器
 request.interceptors.request.use(
   (config) => {
+    // 确保 headers 对象存在
+    if (!config.headers) {
+      config.headers = {} as any
+    }
+
     // 从 localStorage 获取 token
     const token = localStorage.getItem('access_token')
+    console.log('[Request Interceptor] URL:', config.url, 'Token:', token ? token.substring(0, 20) + '...' : 'NULL')
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
+    } else {
+      console.warn('[Request Interceptor] No token found in localStorage!')
     }
+
     return config
   },
   (error) => {

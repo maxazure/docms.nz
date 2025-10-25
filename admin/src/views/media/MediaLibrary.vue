@@ -289,7 +289,7 @@ const pagination = {
 const uploadModalVisible = ref(false)
 const uploadAction = computed(() => `${import.meta.env.VITE_API_BASE_URL}/media/upload`)
 const uploadHeaders = computed(() => ({
-  Authorization: `Bearer ${localStorage.getItem('token')}`
+  Authorization: `Bearer ${localStorage.getItem('access_token')}`
 }))
 
 // 编辑相关
@@ -411,14 +411,14 @@ const columns: DataTableColumns<MediaItem> = [
 const loadMediaList = async () => {
   loading.value = true
   try {
-    const data = await mediaApi.getMediaList({
+    const response = await mediaApi.getMediaList({
       keyword: searchKeyword.value,
       type: filterType.value,
       page: pagination.page,
       pageSize: pagination.pageSize
     })
-    mediaList.value = data.items
-    pagination.itemCount = data.total
+    mediaList.value = response.data
+    pagination.itemCount = response.total
   } catch (error) {
     message.error('加载媒体列表失败')
     console.error(error)
@@ -428,19 +428,20 @@ const loadMediaList = async () => {
 }
 
 // 工具函数
-const isImage = (mimeType: string) => mimeType.startsWith('image/')
-const isVideo = (mimeType: string) => mimeType.startsWith('video/')
-const isAudio = (mimeType: string) => mimeType.startsWith('audio/')
+const isImage = (mimeType: string | undefined) => mimeType?.startsWith('image/') || false
+const isVideo = (mimeType: string | undefined) => mimeType?.startsWith('video/') || false
+const isAudio = (mimeType: string | undefined) => mimeType?.startsWith('audio/') || false
 
-const getFileIcon = (mimeType: string) => {
+const getFileIcon = (mimeType: string | undefined) => {
+  if (!mimeType) return DocumentOutline
   if (isVideo(mimeType)) return VideocamOutline
   if (isAudio(mimeType)) return MusicalNotesOutline
   if (mimeType.includes('zip') || mimeType.includes('archive')) return ArchiveOutline
   return DocumentOutline
 }
 
-const formatFileSize = (bytes: number): string => {
-  if (bytes === 0) return '0 B'
+const formatFileSize = (bytes: number | undefined): string => {
+  if (!bytes || bytes === 0) return '0 B'
   const k = 1024
   const sizes = ['B', 'KB', 'MB', 'GB']
   const i = Math.floor(Math.log(bytes) / Math.log(k))

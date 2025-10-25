@@ -3,7 +3,7 @@
  * 页面管理相关 API 接口
  */
 
-import { request } from './request'
+import { http } from '@/utils/request'
 import type {
   Page,
   CreatePageRequest,
@@ -43,6 +43,13 @@ export async function getPageList(
  */
 export async function getPage(id: string): Promise<ApiResponse<Page>> {
   return http.get(`/pages/${id}`)
+}
+
+/**
+ * 通过 slug 获取页面详情
+ */
+export async function getPageBySlug(slug: string): Promise<ApiResponse<Page>> {
+  return http.get(`/pages/by-slug/${slug}`)
 }
 
 /**
@@ -107,6 +114,7 @@ export async function restorePageVersion(
 export const pageApi = {
   getPageList,
   getPage,
+  getPageBySlug,
   createPage,
   updatePage,
   deletePage,

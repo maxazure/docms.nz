@@ -2,9 +2,10 @@ import { createPinia, setActivePinia } from 'pinia'
 import { mount, VueWrapper } from '@vue/test-utils'
 import { createRouter, createMemoryHistory, Router } from 'vue-router'
 import { vi } from 'vitest'
+import { h } from 'vue'
 import type { Component } from 'vue'
 
-// Mock Naive UI's useMessage
+// Mock Naive UI's composables
 const mockMessage = {
   success: vi.fn(),
   error: vi.fn(),
@@ -13,11 +14,50 @@ const mockMessage = {
   loading: vi.fn()
 }
 
+const mockDialog = {
+  success: vi.fn(),
+  warning: vi.fn(),
+  error: vi.fn(),
+  info: vi.fn()
+}
+
 vi.mock('naive-ui', async () => {
   const actual = await vi.importActual('naive-ui')
   return {
     ...actual,
-    useMessage: () => mockMessage
+    useMessage: () => mockMessage,
+    useDialog: () => mockDialog,
+    useNotification: () => mockMessage,
+    NConfigProvider: {
+      name: 'NConfigProvider',
+      setup(_, { slots }) {
+        return slots.default?.()
+      }
+    },
+    NMessageProvider: {
+      name: 'NMessageProvider',
+      setup(_, { slots }) {
+        return slots.default?.()
+      }
+    },
+    NDialogProvider: {
+      name: 'NDialogProvider',
+      setup(_, { slots }) {
+        return slots.default?.()
+      }
+    },
+    NNotificationProvider: {
+      name: 'NNotificationProvider',
+      setup(_, { slots }) {
+        return slots.default?.()
+      }
+    },
+    NLoadingBarProvider: {
+      name: 'NLoadingBarProvider',
+      setup(_, { slots }) {
+        return slots.default?.()
+      }
+    }
   }
 })
 
@@ -71,6 +111,42 @@ export function mountWithProviders(
       stubs: {
         teleport: true,
         ...options.global?.stubs
+      }
+    }
+  })
+}
+
+/**
+ * Mount component with Naive UI providers for full component testing
+ */
+export function mountWithNaiveProviders(
+  component: Component,
+  options: MountOptions = {}
+): VueWrapper {
+  const pinia = createTestPinia()
+  const router = options.router || createTestRouter()
+
+  // Create wrapper component with Naive UI providers
+  const WrapperComponent = {
+    name: 'TestWrapper',
+    setup() {
+      return () => h('div', [
+        h(component, options.props)
+      ])
+    }
+  }
+
+  return mount(WrapperComponent, {
+    ...options,
+    global: {
+      ...options.global,
+      plugins: [pinia, router, ...(options.global?.plugins || [])],
+      stubs: {
+        teleport: true,
+        ...options.global?.stubs
+      },
+      provide: {
+        ...options.global?.provide
       }
     }
   })

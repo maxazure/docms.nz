@@ -1,22 +1,40 @@
 import { IsString, IsOptional, IsEnum, IsObject, IsBoolean, IsNumber } from 'class-validator';
+import { Transform } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 
 // These enums should match the Prisma schema
-export const MenuItemType = {
-  PAGE: 'PAGE',      // Single page with blocks
-  POST_LIST: 'POST_LIST', // Article/news list
-  PRODUCT: 'PRODUCT', // Product catalog
-} as const;
+export enum MenuItemType {
+  PAGE = 'PAGE',
+  POST_LIST = 'POST_LIST',
+  PRODUCT = 'PRODUCT',
+}
 
-export type MenuItemType = keyof typeof MenuItemType;
+export enum LinkType {
+  INTERNAL = 'INTERNAL',
+  EXTERNAL = 'EXTERNAL',
+}
 
 export class CreateMenuItemDto {
+  @ApiProperty({
+    description: '菜单代码',
+    example: 'main',
+  })
+  @IsString({ message: '菜单代码必须是字符串' })
+  menuCode: string;
+
   @ApiProperty({
     description: '菜单项标题',
     example: '关于我们',
   })
   @IsString({ message: '菜单项标题必须是字符串' })
-  title: string;
+  label: string;
+
+  @ApiProperty({
+    description: 'URL别名',
+    example: 'about',
+  })
+  @IsString({ message: 'URL别名必须是字符串' })
+  slug: string;
 
   @ApiProperty({
     description: '菜单项图标',
@@ -32,8 +50,29 @@ export class CreateMenuItemDto {
     example: MenuItemType.PAGE,
     enum: MenuItemType,
   })
+  @Transform(({ value }) => typeof value === 'string' ? value.toUpperCase() : value)
   @IsEnum(MenuItemType, { message: '菜单项类型必须是有效的枚举值' })
   type: MenuItemType;
+
+  @ApiProperty({
+    description: '链接类型',
+    example: LinkType.INTERNAL,
+    enum: LinkType,
+    required: false,
+  })
+  @Transform(({ value }) => typeof value === 'string' ? value.toUpperCase() : value)
+  @IsEnum(LinkType, { message: '链接类型必须是有效的枚举值' })
+  @IsOptional()
+  linkType?: LinkType;
+
+  @ApiProperty({
+    description: '链接目标（外部URL或内部资源ID）',
+    example: '/about',
+    required: false,
+  })
+  @IsString({ message: '链接目标必须是字符串' })
+  @IsOptional()
+  linkTarget?: string;
 
   @ApiProperty({
     description: '父级菜单项ID（用于嵌套菜单）',
@@ -70,33 +109,6 @@ export class CreateMenuItemDto {
   @IsBoolean({ message: '是否激活必须是布尔值' })
   @IsOptional()
   isActive?: boolean;
-
-  @ApiProperty({
-    description: '关联的页面ID（当type为PAGE时）',
-    example: 'page-1',
-    required: false,
-  })
-  @IsString({ message: '关联页面ID必须是字符串' })
-  @IsOptional()
-  pageId?: string;
-
-  @ApiProperty({
-    description: 'URL路径（用于外部链接）',
-    example: '/about',
-    required: false,
-  })
-  @IsString({ message: 'URL路径必须是字符串' })
-  @IsOptional()
-  url?: string;
-
-  @ApiProperty({
-    description: '菜单项配置（如过滤条件、显示选项等）',
-    example: { category: 'news', limit: 10 },
-    required: false,
-  })
-  @IsObject({ message: '菜单项配置必须是对象' })
-  @IsOptional()
-  config?: Record<string, any>;
 }
 
 export class UpdateMenuItemDto {
@@ -107,7 +119,16 @@ export class UpdateMenuItemDto {
   })
   @IsString({ message: '菜单项标题必须是字符串' })
   @IsOptional()
-  title?: string;
+  label?: string;
+
+  @ApiProperty({
+    description: 'URL别名',
+    example: 'about-updated',
+    required: false,
+  })
+  @IsString({ message: 'URL别名必须是字符串' })
+  @IsOptional()
+  slug?: string;
 
   @ApiProperty({
     description: '菜单项图标',
@@ -146,29 +167,22 @@ export class UpdateMenuItemDto {
   isActive?: boolean;
 
   @ApiProperty({
-    description: '关联的页面ID（当type为PAGE时）',
-    example: 'page-1',
+    description: '链接类型',
+    example: LinkType.INTERNAL,
+    enum: LinkType,
     required: false,
   })
-  @IsString({ message: '关联页面ID必须是字符串' })
+  @Transform(({ value }) => typeof value === 'string' ? value.toUpperCase() : value)
+  @IsEnum(LinkType, { message: '链接类型必须是有效的枚举值' })
   @IsOptional()
-  pageId?: string;
+  linkType?: LinkType;
 
   @ApiProperty({
-    description: 'URL路径（用于外部链接）',
-    example: '/about-updated',
+    description: '链接目标（外部URL或内部资源ID）',
+    example: '/about',
     required: false,
   })
-  @IsString({ message: 'URL路径必须是字符串' })
+  @IsString({ message: '链接目标必须是字符串' })
   @IsOptional()
-  url?: string;
-
-  @ApiProperty({
-    description: '菜单项配置',
-    example: { category: 'news', limit: 20 },
-    required: false,
-  })
-  @IsObject({ message: '菜单项配置必须是对象' })
-  @IsOptional()
-  config?: Record<string, any>;
+  linkTarget?: string;
 }

@@ -6,6 +6,7 @@ import { Post, UserRole, ContentStatus } from '@prisma/client';
 @Injectable()
 export class PostService {
   constructor(private prisma: PrismaService) {}
+  // Updated to include categoryIds and authorName in findAll response
 
   async create(createPostDto: CreatePostDto, user: any): Promise<Post> {
     // Check permissions
@@ -64,7 +65,7 @@ export class PostService {
   }
 
   async findAll(query: PostQueryDto = {}) {
-    const { page = 1, limit = 10, status, categoryId, tagId, search, authorId } = query;
+    const { page = 1, limit = 10, status, categoryId, tagId, search, authorId, menuItemId } = query;
     const skip = (page - 1) * limit;
 
     const where: any = {};
@@ -75,6 +76,10 @@ export class PostService {
 
     if (authorId) {
       where.authorId = authorId;
+    }
+
+    if (menuItemId) {
+      where.menuItemId = menuItemId;
     }
 
     if (categoryId) {
@@ -100,15 +105,42 @@ export class PostService {
       ];
     }
 
-    const [data, total] = await Promise.all([
+    const [posts, total] = await Promise.all([
       this.prisma.post.findMany({
         where,
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' },
+        include: {
+          author: {
+            select: {
+              id: true,
+              displayName: true,
+              email: true,
+            },
+          },
+          postCategories: {
+            include: {
+              category: true,
+            },
+          },
+          postTags: {
+            include: {
+              tag: true,
+            },
+          },
+        },
       }),
       this.prisma.post.count({ where }),
     ]);
+
+    // Transform data to include categoryIds, tagIds, and authorName
+    const data = posts.map((post: any) => ({
+      ...post,
+      categoryIds: post.postCategories?.map((pc: any) => pc.categoryId) || [],
+      tagIds: post.postTags?.map((pt: any) => pt.tagId) || [],
+      authorName: post.author?.displayName || 'Unknown',
+    }));
 
     return {
       data,
@@ -255,5 +287,27 @@ export class PostService {
         publishedAt: new Date(),
       },
     });
+  }
+
+  async getCategories() {
+    const categories = await this.prisma.category.findMany({
+      orderBy: { name: 'asc' },
+    });
+
+    return {
+      success: true,
+      data: categories,
+    };
+  }
+
+  async getTags() {
+    const tags = await this.prisma.tag.findMany({
+      orderBy: { name: 'asc' },
+    });
+
+    return {
+      success: true,
+      data: tags,
+    };
   }
 }

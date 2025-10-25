@@ -79,8 +79,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, h } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onMounted, h, computed, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { useMessage, useDialog, NButton, NSpace, NTag, type DataTableColumns } from 'naive-ui'
 import { Add, Search } from '@vicons/ionicons5'
 import type { Post, Category, Tag } from '@/types/post'
@@ -96,6 +96,7 @@ import CategoryManager from '@/components/posts/CategoryManager.vue'
 import TagManager from '@/components/posts/TagManager.vue'
 
 const router = useRouter()
+const route = useRoute()
 const message = useMessage()
 const dialog = useDialog()
 
@@ -108,6 +109,9 @@ const searchKeyword = ref('')
 const statusFilter = ref<string | null>(null)
 const categoryFilter = ref<string | null>(null)
 
+// 从 URL 查询参数获取 menuId
+const menuId = computed(() => route.query.menuId as string | undefined)
+
 const currentPage = ref(1)
 const pageSize = ref(20)
 const total = ref(0)
@@ -116,8 +120,8 @@ const showCategoryManager = ref(false)
 const showTagManager = ref(false)
 
 const statusOptions = [
-  { label: '草稿', value: 'draft' },
-  { label: '已发布', value: 'published' }
+  { label: '草稿', value: 'DRAFT' },
+  { label: '已发布', value: 'PUBLISHED' }
 ]
 
 const categoryOptions = ref<{ label: string; value: string }[]>([])
@@ -146,8 +150,9 @@ const columns: DataTableColumns<Post> = [
     key: 'status',
     width: 100,
     render: row => {
-      const type = row.status === 'published' ? 'success' : 'default'
-      const label = row.status === 'published' ? '已发布' : '草稿'
+      const status = row.status?.toUpperCase()
+      const type = status === 'PUBLISHED' ? 'success' : 'default'
+      const label = status === 'PUBLISHED' ? '已发布' : '草稿'
       return h(NTag, { type }, () => label)
     }
   },
@@ -173,7 +178,7 @@ const columns: DataTableColumns<Post> = [
           { size: 'small', onClick: () => handleEdit(row) },
           () => '编辑'
         ),
-        row.status === 'draft'
+        row.status?.toUpperCase() === 'DRAFT'
           ? h(
               NButton,
               { size: 'small', type: 'success', onClick: () => handlePublish(row) },
@@ -211,7 +216,8 @@ async function loadPosts() {
       limit: pageSize.value,
       search: searchKeyword.value || undefined,
       status: statusFilter.value || undefined,
-      categoryId: categoryFilter.value || undefined
+      categoryId: categoryFilter.value || undefined,
+      menuItemId: menuId.value || undefined
     })
     posts.value = response.data
     total.value = response.total
@@ -250,7 +256,7 @@ function handleCreate() {
 }
 
 function handleEdit(post: Post) {
-  router.push(`/posts/edit/${post.id}`)
+  router.push(`/posts/${post.id}/edit`)
 }
 
 async function handleDelete(post: Post) {
@@ -311,6 +317,12 @@ function handlePageChange(page: number) {
   currentPage.value = page
   loadPosts()
 }
+
+// 监听 menuId 变化，当切换栏目时重新加载文章列表
+watch(menuId, () => {
+  currentPage.value = 1 // 重置为第一页
+  loadPosts()
+})
 
 onMounted(() => {
   loadPosts()

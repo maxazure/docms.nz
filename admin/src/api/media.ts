@@ -17,8 +17,9 @@ import type {
  */
 export async function getMediaList(
   query?: MediaListQuery
-): Promise<ApiResponse<MediaListResponse>> {
-  return http.get('/media', { params: query })
+): Promise<MediaListResponse> {
+  const response = await http.get('/media', { params: query })
+  return response.data.data
 }
 
 /**
@@ -32,19 +33,23 @@ export async function getMedia(id: string): Promise<ApiResponse<Media>> {
  * 上传媒体文件
  */
 export async function uploadMedia(
-  file: File,
+  fileOrFormData: File | FormData,
   data?: { alt?: string; title?: string }
 ): Promise<ApiResponse<Media>> {
-  const formData = new FormData()
-  formData.append('file', file)
-  if (data?.alt) formData.append('alt', data.alt)
-  if (data?.title) formData.append('title', data.title)
+  console.log('[uploadMedia] Called with:', fileOrFormData)
+  let formData: FormData
 
-  return http.post('/media', formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data'
-    }
-  })
+  if (fileOrFormData instanceof FormData) {
+    formData = fileOrFormData
+  } else {
+    formData = new FormData()
+    formData.append('file', fileOrFormData)
+    if (data?.alt) formData.append('alt', data.alt)
+    if (data?.title) formData.append('title', data.title)
+  }
+
+  console.log('[uploadMedia] Sending request to /media/upload')
+  return http.post('/media/upload', formData)
 }
 
 /**
@@ -61,11 +66,7 @@ export async function uploadMediaBatch(
   if (data?.alt) formData.append('alt', data.alt)
   if (data?.title) formData.append('title', data.title)
 
-  return http.post('/media/batch', formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data'
-    }
-  })
+  return http.post('/media/batch', formData)
 }
 
 /**

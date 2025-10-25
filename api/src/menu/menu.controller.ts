@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Put,
+  Patch,
   Delete,
   Body,
   Param,
@@ -25,7 +26,7 @@ export class MenuController {
   constructor(private readonly menuService: MenuService) {}
 
   @Post()
-  @Roles(UserRole.ADMIN, UserRole.EDITOR, UserRole.AUTHOR)
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.EDITOR, UserRole.AUTHOR)
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: '创建菜单项' })
@@ -51,7 +52,7 @@ export class MenuController {
 
   @Get()
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: '获取菜单列表' })
+  @ApiOperation({ summary: '获取菜单列表（公开访问）' })
   @ApiResponse({ status: 200, description: '获取成功' })
   async findAll(@Query() query: any) {
     try {
@@ -71,7 +72,7 @@ export class MenuController {
 
   @Get('tree')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: '获取树形菜单结构' })
+  @ApiOperation({ summary: '获取树形菜单结构（公开访问）' })
   @ApiResponse({ status: 200, description: '获取成功' })
   async getMenuTree(@Query() query: any): Promise<{ success: boolean; data: MenuTreeNode[] | null; message?: string }> {
     try {
@@ -111,7 +112,7 @@ export class MenuController {
   }
 
   @Put(':id')
-  @Roles(UserRole.ADMIN, UserRole.EDITOR)
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.EDITOR)
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: '更新菜单项' })
@@ -141,7 +142,7 @@ export class MenuController {
   }
 
   @Delete(':id')
-  @Roles(UserRole.ADMIN, UserRole.EDITOR)
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.EDITOR)
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: '删除菜单项' })
@@ -155,6 +156,32 @@ export class MenuController {
       return {
         success: true,
         message: '菜单项删除成功',
+        data: menuItem,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.message,
+        data: null,
+      };
+    }
+  }
+
+  @Patch(':id/toggle-visibility')
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.EDITOR)
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: '切换菜单项可见性' })
+  @ApiResponse({ status: 200, description: '切换成功' })
+  @ApiResponse({ status: 401, description: '未授权访问' })
+  @ApiResponse({ status: 403, description: '权限不足' })
+  @ApiResponse({ status: 404, description: '菜单项未找到' })
+  async toggleVisibility(@Param('id') id: string, @User() user: any) {
+    try {
+      const menuItem = await this.menuService.toggleVisibility(id, user);
+      return {
+        success: true,
+        message: '可见性切换成功',
         data: menuItem,
       };
     } catch (error) {

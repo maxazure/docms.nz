@@ -326,7 +326,22 @@ async function loadPage() {
   error.value = null
 
   try {
-    const response = await pageApi.getPage(route.params.id as string)
+    const idOrSlug = route.params.id || route.params.slugOrId
+    if (!idOrSlug) {
+      throw new Error('页面ID或Slug不能为空')
+    }
+
+    // 判断是UUID还是slug (UUID格式: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idOrSlug as string)
+
+    let response
+    if (isUUID) {
+      response = await pageApi.getPage(idOrSlug as string)
+    } else {
+      // 使用slug加载
+      response = await pageApi.getPageBySlug(idOrSlug as string)
+    }
+
     if (response.data) {
       pageData.value = response.data
     }
@@ -503,7 +518,9 @@ function getBlockLabel(type: string) {
 }
 
 function getBlockConfigComponent(type: string) {
-  return blockConfigMap[type] || null
+  // 转换为小写以匹配 blockConfigMap 的 key
+  const normalizedType = type.toLowerCase()
+  return blockConfigMap[normalizedType] || null
 }
 
 function getCategoryLabel(category: string): string {

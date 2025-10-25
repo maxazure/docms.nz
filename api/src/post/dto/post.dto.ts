@@ -97,6 +97,11 @@ export class PostQueryDto {
   @IsOptional()
   search?: string;
 
+  @ApiPropertyOptional({ description: '栏目ID' })
+  @IsString()
+  @IsOptional()
+  menuItemId?: string;
+
   @ApiPropertyOptional({ description: '作者ID' })
   @IsString()
   @IsOptional()

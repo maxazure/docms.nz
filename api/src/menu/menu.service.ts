@@ -29,29 +29,22 @@ export class MenuService {
    * Create new menu item
    */
   async create(createMenuItemDto: CreateMenuItemDto, user?: any): Promise<any> {
-    // Check permissions - only ADMIN, EDITOR, and AUTHOR can create menus
-    if (user && ![UserRole.ADMIN, UserRole.EDITOR, UserRole.AUTHOR].includes(user.role)) {
+    // Check permissions - only OWNER, ADMIN, EDITOR, and AUTHOR can create menus
+    if (user && ![UserRole.OWNER, UserRole.ADMIN, UserRole.EDITOR, UserRole.AUTHOR].includes(user.role)) {
       throw new ForbiddenException('权限不足');
     }
 
-    // Validate menu item configuration
-    this.validateMenuItemConfig(createMenuItemDto.type, createMenuItemDto);
-
-    // Generate menu code and slug
-    const menuCode = this.generateMenuCode(createMenuItemDto.title);
-    const slug = this.generateSlug(createMenuItemDto.title);
-
     const menuItem = await this.prisma.menuItem.create({
       data: {
-        menuCode,
-        label: createMenuItemDto.title,
-        slug,
+        menuCode: createMenuItemDto.menuCode,
+        label: createMenuItemDto.label,
+        slug: createMenuItemDto.slug,
         type: createMenuItemDto.type,
         parentId: createMenuItemDto.parentId,
         order: createMenuItemDto.order || 0,
         icon: createMenuItemDto.icon,
-        linkTarget: createMenuItemDto.pageId || createMenuItemDto.url,
-        linkType: createMenuItemDto.pageId ? LinkType.INTERNAL : LinkType.EXTERNAL,
+        linkTarget: createMenuItemDto.linkTarget,
+        linkType: createMenuItemDto.linkType || LinkType.INTERNAL,
         isVisible: createMenuItemDto.isVisible ?? true,
         isActive: createMenuItemDto.isActive ?? true,
       },
@@ -107,8 +100,8 @@ export class MenuService {
    * Update menu item
    */
   async update(id: string, updateMenuItemDto: UpdateMenuItemDto, user?: any): Promise<any> {
-    // Check permissions - only ADMIN and EDITOR can update menus
-    if (user && ![UserRole.ADMIN, UserRole.EDITOR].includes(user.role)) {
+    // Check permissions - only OWNER, ADMIN and EDITOR can update menus
+    if (user && ![UserRole.OWNER, UserRole.ADMIN, UserRole.EDITOR].includes(user.role)) {
       throw new ForbiddenException('权限不足');
     }
 
@@ -126,8 +119,8 @@ export class MenuService {
    * Delete menu item
    */
   async remove(id: string, user?: any): Promise<any> {
-    // Check permissions - only ADMIN and EDITOR can delete menus
-    if (user && ![UserRole.ADMIN, UserRole.EDITOR].includes(user.role)) {
+    // Check permissions - only OWNER, ADMIN and EDITOR can delete menus
+    if (user && ![UserRole.OWNER, UserRole.ADMIN, UserRole.EDITOR].includes(user.role)) {
       throw new ForbiddenException('权限不足');
     }
 
@@ -191,8 +184,8 @@ export class MenuService {
    * Reorder menu items
    */
   async reorder(orders: { id: string; order: number }[], user?: any): Promise<void> {
-    // Check permissions - only ADMIN and EDITOR can reorder menus
-    if (user && ![UserRole.ADMIN, UserRole.EDITOR].includes(user.role)) {
+    // Check permissions - only OWNER, ADMIN and EDITOR can reorder menus
+    if (user && ![UserRole.OWNER, UserRole.ADMIN, UserRole.EDITOR].includes(user.role)) {
       throw new ForbiddenException('权限不足');
     }
 
@@ -213,8 +206,8 @@ export class MenuService {
   async toggleVisibility(id: string, user?: any): Promise<MenuItem> {
     const menuItem = await this.findOne(id);
 
-    // Check permissions - only ADMIN and EDITOR can toggle visibility
-    if (user && ![UserRole.ADMIN, UserRole.EDITOR].includes(user.role)) {
+    // Check permissions - only OWNER, ADMIN and EDITOR can toggle visibility
+    if (user && ![UserRole.OWNER, UserRole.ADMIN, UserRole.EDITOR].includes(user.role)) {
       throw new ForbiddenException('权限不足');
     }
 
@@ -226,51 +219,4 @@ export class MenuService {
     return updatedMenuItem;
   }
 
-  /**
-   * Validate menu item configuration based on type
-   */
-  private validateMenuItemConfig(type: MenuItemType, config: CreateMenuItemDto): void {
-    switch (type) {
-      case MenuItemType.PAGE:
-        if (!config.pageId) {
-          throw new BadRequestException('页面类型菜单项必须指定页面ID');
-        }
-        break;
-      case MenuItemType.POST_LIST:
-        if (!config.config) {
-          throw new BadRequestException('文章列表类型菜单项必须指定配置参数');
-        }
-        if (!config.config.category) {
-          throw new BadRequestException('文章列表类型菜单项必须指定分类');
-        }
-        break;
-      case MenuItemType.PRODUCT:
-        if (!config.config) {
-          throw new BadRequestException('产品类型菜单项必须指定配置参数');
-        }
-        break;
-    }
-  }
-
-  /**
-   * Generate URL-friendly slug from title
-   */
-  private generateSlug(title: string): string {
-    return title
-      .toLowerCase()
-      .replace(/[^\w\s-]/g, '') // Remove special characters
-      .replace(/\s+/g, '-') // Replace spaces with hyphens
-      .trim();
-  }
-
-  /**
-   * Generate menu code from title
-   */
-  private generateMenuCode(title: string): string {
-    return title
-      .toLowerCase()
-      .replace(/[^\w\s-]/g, '')
-      .replace(/\s+/g, '_')
-      .trim();
-  }
 }

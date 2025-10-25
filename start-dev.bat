@@ -8,6 +8,38 @@ echo  Docms Development Mode Startup
 echo ========================================
 echo.
 
+:: ========================================
+:: 0. 停止现有服务
+:: ========================================
+echo ========================================
+echo [步骤 0/3] 停止现有服务
+echo [Step 0/3] Stopping Existing Services
+echo ========================================
+echo.
+
+echo [信息] 正在停止现有的 Docms 服务...
+echo [INFO] Stopping existing Docms services...
+echo.
+
+:: 停止API服务
+taskkill /FI "WINDOWTITLE eq Docms API*" /F 2>nul
+
+:: 停止Admin服务
+taskkill /FI "WINDOWTITLE eq Docms Admin*" /F 2>nul
+
+:: 清理端口占用
+for /f "tokens=5" %%a in ('netstat -aon ^| findstr :3000 ^| findstr LISTENING 2^>nul') do (
+    taskkill /F /PID %%a 2>nul
+)
+
+for /f "tokens=5" %%a in ('netstat -aon ^| findstr :5173 ^| findstr LISTENING 2^>nul') do (
+    taskkill /F /PID %%a 2>nul
+)
+
+echo [成功] 现有服务已停止
+echo [SUCCESS] Existing services stopped
+echo.
+
 :: 检查Node.js是否安装
 where node >nul 2>nul
 if %errorlevel% neq 0 (
@@ -38,8 +70,8 @@ echo.
 :: 1. 安装依赖
 :: ========================================
 echo ========================================
-echo [步骤 1/3] 检查并安装依赖
-echo [Step 1/3] Checking and Installing Dependencies
+echo [步骤 1/4] 检查并安装依赖
+echo [Step 1/4] Checking and Installing Dependencies
 echo ========================================
 
 :: API 依赖
@@ -97,8 +129,8 @@ echo.
 :: 2. 启动开发服务
 :: ========================================
 echo ========================================
-echo [步骤 2/3] 启动开发服务
-echo [Step 2/3] Starting Development Services
+echo [步骤 2/4] 启动开发服务
+echo [Step 2/4] Starting Development Services
 echo ========================================
 echo.
 
@@ -115,8 +147,8 @@ start "Docms Admin Dev Server" cmd /k "cd /d %~dp0admin && echo ================
 
 echo.
 echo ========================================
-echo [步骤 3/3] 启动完成
-echo [Step 3/3] Startup Complete
+echo [步骤 3/4] 启动完成
+echo [Step 3/4] Startup Complete
 echo ========================================
 echo.
 echo [成功] 所有开发服务已启动！

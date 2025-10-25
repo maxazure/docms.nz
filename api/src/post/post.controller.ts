@@ -36,6 +36,20 @@ export class PostController {
     return this.postService.findAll(query);
   }
 
+  @Get('categories')
+  @ApiOperation({ summary: '获取文章分类列表' })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  getCategories() {
+    return this.postService.getCategories();
+  }
+
+  @Get('tags')
+  @ApiOperation({ summary: '获取文章标签列表' })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  getTags() {
+    return this.postService.getTags();
+  }
+
   @Get(':id')
   @ApiOperation({ summary: '获取文章详情' })
   @ApiResponse({ status: 200, description: '获取成功', type: PostResponseDto })

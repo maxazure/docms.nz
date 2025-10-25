@@ -108,6 +108,12 @@ export class ProductQueryDto {
   @IsBoolean()
   @IsOptional()
   isActive?: boolean;
+
+  @ApiPropertyOptional({ description: '是否精选' })
+  @Type(() => Boolean)
+  @IsBoolean()
+  @IsOptional()
+  isFeatured?: boolean;
 }
 
 export class ProductResponseDto {

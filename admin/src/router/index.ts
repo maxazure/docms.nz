@@ -51,6 +51,13 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/pages/PageEditor.vue'),
         meta: { title: '编辑页面' }
       },
+      // 动态页面路由 - 通过 slug 或 id 访问页面编辑器
+      {
+        path: 'pages/:slugOrId',
+        name: 'PageBySlug',
+        component: () => import('@/views/pages/PageEditor.vue'),
+        meta: { title: '编辑页面' }
+      },
       // 文章管理
       {
         path: 'posts',
@@ -59,10 +66,30 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '文章列表' }
       },
       {
+        path: 'posts/create',
+        name: 'PostCreate',
+        component: () => import('@/views/posts/PostEditor.vue'),
+        meta: { title: '新建文章' }
+      },
+      {
         path: 'posts/:id/edit',
         name: 'PostEditor',
         component: () => import('@/views/posts/PostEditor.vue'),
         meta: { title: '编辑文章' }
+      },
+      // 分类管理
+      {
+        path: 'categories',
+        name: 'CategoryManagement',
+        component: () => import('@/views/categories/CategoryManagement.vue'),
+        meta: { title: '分类管理' }
+      },
+      // 标签管理
+      {
+        path: 'tags',
+        name: 'TagManagement',
+        component: () => import('@/views/tags/TagManagement.vue'),
+        meta: { title: '标签管理' }
       },
       // 产品管理
       {
@@ -70,6 +97,12 @@ const routes: RouteRecordRaw[] = [
         name: 'ProductList',
         component: () => import('@/views/products/ProductList.vue'),
         meta: { title: '产品列表' }
+      },
+      {
+        path: 'products/create',
+        name: 'ProductCreate',
+        component: () => import('@/views/products/ProductEditor.vue'),
+        meta: { title: '新建产品' }
       },
       {
         path: 'products/:id/edit',
@@ -97,6 +130,13 @@ const routes: RouteRecordRaw[] = [
         name: 'UserList',
         component: () => import('@/views/users/UserList.vue'),
         meta: { title: '用户管理' }
+      },
+      // 审计日志
+      {
+        path: 'audit',
+        name: 'AuditLog',
+        component: () => import('@/views/audit/AuditLogList.vue'),
+        meta: { title: '审计日志' }
       }
     ]
   },

@@ -13,11 +13,14 @@ import { CategoryModule } from './category/category.module';
 import { TagModule } from './tag/tag.module';
 import { PostModule } from './post/post.module';
 import { ProductModule } from './product/product.module';
+import { FormSubmissionModule } from './form-submission/form-submission.module';
+import { UserModule } from './user/user.module';
 
 @Module({
   imports: [
     CommonModule,
     AuthModule,
+    UserModule,
     PermissionsModule,
     SiteModule,
     MediaModule,
@@ -28,6 +31,7 @@ import { ProductModule } from './product/product.module';
     TagModule,
     PostModule,
     ProductModule,
+    FormSubmissionModule,
   ],
   controllers: [AppController],
   providers: [AppService],

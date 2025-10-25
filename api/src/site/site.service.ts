@@ -11,9 +11,8 @@ export class SiteService {
    * Get site configuration
    */
   async getSite(): Promise<Site> {
-    const site = await this.prisma.site.findUnique({
-      where: { id: 'site-1' }, // Assuming single site with id = 'site-1'
-    });
+    // Since this is a single-site CMS, we just get the first (and only) site
+    const site = await this.prisma.site.findFirst();
 
     if (!site) {
       throw new NotFoundException('站点未找到');

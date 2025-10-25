@@ -15,6 +15,15 @@ export interface PaginatedResponse<T> {
   totalPages: number
 }
 
+// 列表响应 (与后端API格式匹配)
+export interface ListResponse<T> {
+  data: T[]
+  total: number
+  page: number
+  limit: number
+  totalPages?: number
+}
+
 // 用户角色
 export enum UserRole {
   OWNER = 'OWNER',

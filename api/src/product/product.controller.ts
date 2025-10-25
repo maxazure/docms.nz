@@ -69,4 +69,13 @@ export class ProductController {
   toggleActive(@Param('id') id: string, @Request() req: any) {
     return this.productService.toggleActive(id, req.user);
   }
+
+  @Post(':id/toggle-featured')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '切换产品推荐状态' })
+  @ApiResponse({ status: 200, description: '切换成功', type: ProductResponseDto })
+  toggleFeatured(@Param('id') id: string, @Request() req: any) {
+    return this.productService.toggleFeatured(id, req.user);
+  }
 }

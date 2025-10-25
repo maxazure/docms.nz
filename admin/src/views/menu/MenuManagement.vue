@@ -1,17 +1,33 @@
 <template>
   <div class="menu-management">
-    <n-card title="菜单管理">
+    <n-card>
+      <template #header>
+        <div class="header-content">
+          <h2>菜单管理</h2>
+          <n-text depth="3">拖拽调整顺序，支持层级嵌套</n-text>
+        </div>
+      </template>
+
       <template #header-extra>
-        <n-button
-          type="primary"
-          data-test="add-menu-button"
-          @click="handleCreate"
-        >
-          <template #icon>
-            <n-icon><AddOutline /></n-icon>
-          </template>
-          添加栏目
-        </n-button>
+        <n-space>
+          <n-button
+            v-if="menuItems.length > 0"
+            quaternary
+            @click="toggleExpandAll"
+          >
+            {{ allExpanded ? '折叠全部' : '展开全部' }}
+          </n-button>
+          <n-button
+            type="primary"
+            data-test="add-menu-button"
+            @click="handleCreate"
+          >
+            <template #icon>
+              <n-icon><AddOutline /></n-icon>
+            </template>
+            添加一级菜单
+          </n-button>
+        </n-space>
       </template>
 
       <!-- Loading State -->
@@ -24,22 +40,263 @@
         {{ error }}
       </n-alert>
 
-      <!-- Menu Tree -->
-      <div v-else class="menu-tree">
-        <n-tree
-          :data="treeData"
-          :render-label="renderLabel"
-          :render-suffix="renderSuffix"
-          block-line
-          draggable
-          @update:expanded-keys="handleExpandedKeysChange"
-          @drop="handleDrop"
-        />
-
+      <!-- Menu List -->
+      <div v-else class="menu-list">
         <n-empty
           v-if="menuItems.length === 0"
           description="暂无菜单项，点击上方按钮添加"
         />
+
+        <!-- Top-level menu items -->
+        <draggable
+          v-model="topLevelMenus"
+          :item-key="(item: MenuItem) => item.id"
+          handle=".drag-handle"
+          @end="handleTopLevelReorder"
+          class="menu-items-container"
+        >
+          <template #item="{ element: item }">
+            <div class="menu-item-wrapper" :key="item.id">
+              <!-- Top-level menu card -->
+              <n-card
+                class="menu-item-card top-level"
+                :class="{ 'has-children': hasChildren(item) }"
+                hoverable
+              >
+                <div class="menu-item-content">
+                  <!-- Drag handle -->
+                  <div class="drag-handle">
+                    <n-icon size="20" :component="ReorderThreeOutline" />
+                  </div>
+
+                  <!-- Expand/collapse toggle -->
+                  <div
+                    v-if="hasChildren(item)"
+                    class="expand-toggle"
+                    @click="toggleExpand(item.id)"
+                  >
+                    <n-icon
+                      size="18"
+                      :component="expandedIds.includes(item.id) ? ChevronDownOutline : ChevronForwardOutline"
+                    />
+                  </div>
+                  <div v-else class="expand-toggle-placeholder"></div>
+
+                  <!-- Icon -->
+                  <div class="menu-icon">
+                    <n-icon
+                      size="24"
+                      :component="getMenuIcon(item.icon || item.type)"
+                      :color="getTypeColor(item.type)"
+                    />
+                  </div>
+
+                  <!-- Menu info -->
+                  <div class="menu-info">
+                    <div class="menu-title">
+                      <span class="title-text">{{ item.label }}</span>
+                      <n-tag
+                        size="small"
+                        :type="getTypeTagType(item.type)"
+                        round
+                      >
+                        {{ getTypeLabel(item.type) }}
+                      </n-tag>
+                    </div>
+                    <div class="menu-meta">
+                      <n-text depth="3" class="slug">{{ item.slug }}</n-text>
+                      <n-divider vertical />
+                      <n-text depth="3" class="order">排序: {{ item.order }}</n-text>
+                      <n-divider vertical />
+                      <n-tag
+                        v-if="!item.isVisible"
+                        size="small"
+                        type="warning"
+                        round
+                      >
+                        已隐藏
+                      </n-tag>
+                      <n-tag
+                        v-if="!item.isActive"
+                        size="small"
+                        type="error"
+                        round
+                      >
+                        已禁用
+                      </n-tag>
+                    </div>
+                  </div>
+
+                  <!-- Actions -->
+                  <div class="menu-actions">
+                    <n-button
+                      size="small"
+                      quaternary
+                      circle
+                      title="添加子菜单"
+                      @click="handleCreateChild(item)"
+                    >
+                      <template #icon>
+                        <n-icon><AddCircleOutline /></n-icon>
+                      </template>
+                    </n-button>
+                    <n-button
+                      size="small"
+                      quaternary
+                      circle
+                      title="切换可见性"
+                      @click="handleToggleVisibility(item)"
+                    >
+                      <template #icon>
+                        <n-icon>
+                          <component :is="item.isVisible ? EyeOutline : EyeOffOutline" />
+                        </n-icon>
+                      </template>
+                    </n-button>
+                    <n-button
+                      size="small"
+                      quaternary
+                      circle
+                      title="编辑"
+                      @click="handleEdit(item)"
+                    >
+                      <template #icon>
+                        <n-icon><CreateOutline /></n-icon>
+                      </template>
+                    </n-button>
+                    <n-button
+                      size="small"
+                      quaternary
+                      circle
+                      type="error"
+                      title="删除"
+                      @click="handleDelete(item)"
+                    >
+                      <template #icon>
+                        <n-icon><TrashOutline /></n-icon>
+                      </template>
+                    </n-button>
+                  </div>
+                </div>
+
+                <!-- Child menu items -->
+                <transition name="expand">
+                  <div
+                    v-if="hasChildren(item) && expandedIds.includes(item.id)"
+                    class="child-menus"
+                  >
+                    <draggable
+                      :model-value="getChildren(item.id)"
+                      :item-key="(child: MenuItem) => child.id"
+                      handle=".drag-handle"
+                      @end="(evt: any) => handleChildReorder(evt, item.id)"
+                      class="child-items-container"
+                    >
+                      <template #item="{ element: child }">
+                        <n-card
+                          class="menu-item-card child-level"
+                          hoverable
+                          :key="child.id"
+                        >
+                          <div class="menu-item-content">
+                            <!-- Drag handle -->
+                            <div class="drag-handle">
+                              <n-icon size="18" :component="ReorderTwoOutline" />
+                            </div>
+
+                            <!-- Icon -->
+                            <div class="menu-icon small">
+                              <n-icon
+                                size="20"
+                                :component="getMenuIcon(child.icon || child.type)"
+                                :color="getTypeColor(child.type)"
+                              />
+                            </div>
+
+                            <!-- Menu info -->
+                            <div class="menu-info">
+                              <div class="menu-title">
+                                <span class="title-text">{{ child.label }}</span>
+                                <n-tag
+                                  size="tiny"
+                                  :type="getTypeTagType(child.type)"
+                                  round
+                                >
+                                  {{ getTypeLabel(child.type) }}
+                                </n-tag>
+                              </div>
+                              <div class="menu-meta">
+                                <n-text depth="3" class="slug">{{ child.slug }}</n-text>
+                                <n-divider vertical />
+                                <n-text depth="3" class="order">排序: {{ child.order }}</n-text>
+                                <n-tag
+                                  v-if="!child.isVisible"
+                                  size="tiny"
+                                  type="warning"
+                                  round
+                                >
+                                  已隐藏
+                                </n-tag>
+                                <n-tag
+                                  v-if="!child.isActive"
+                                  size="tiny"
+                                  type="error"
+                                  round
+                                >
+                                  已禁用
+                                </n-tag>
+                              </div>
+                            </div>
+
+                            <!-- Actions -->
+                            <div class="menu-actions">
+                              <n-button
+                                size="small"
+                                quaternary
+                                circle
+                                title="切换可见性"
+                                @click="handleToggleVisibility(child)"
+                              >
+                                <template #icon>
+                                  <n-icon>
+                                    <component :is="child.isVisible ? EyeOutline : EyeOffOutline" />
+                                  </n-icon>
+                                </template>
+                              </n-button>
+                              <n-button
+                                size="small"
+                                quaternary
+                                circle
+                                title="编辑"
+                                @click="handleEdit(child)"
+                              >
+                                <template #icon>
+                                  <n-icon><CreateOutline /></n-icon>
+                                </template>
+                              </n-button>
+                              <n-button
+                                size="small"
+                                quaternary
+                                circle
+                                type="error"
+                                title="删除"
+                                @click="handleDelete(child)"
+                              >
+                                <template #icon>
+                                  <n-icon><TrashOutline /></n-icon>
+                                </template>
+                              </n-button>
+                            </div>
+                          </div>
+                        </n-card>
+                      </template>
+                    </draggable>
+                  </div>
+                </transition>
+              </n-card>
+            </div>
+          </template>
+        </draggable>
       </div>
     </n-card>
 
@@ -146,9 +403,25 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, h } from 'vue'
-import { useMessage, type FormInst, type FormRules, type TreeOption } from 'naive-ui'
-import { AddOutline, CreateOutline, TrashOutline } from '@vicons/ionicons5'
+import { ref, computed, onMounted } from 'vue'
+import { useMessage, type FormInst, type FormRules } from 'naive-ui'
+import {
+  AddOutline,
+  CreateOutline,
+  TrashOutline,
+  AddCircleOutline,
+  EyeOutline,
+  EyeOffOutline,
+  ChevronDownOutline,
+  ChevronForwardOutline,
+  ReorderThreeOutline,
+  ReorderTwoOutline,
+  HomeOutline,
+  CubeOutline,
+  NewspaperOutline,
+  DocumentTextOutline
+} from '@vicons/ionicons5'
+import draggable from 'vuedraggable'
 import { menuApi } from '@/api/menu'
 import { useMenuStore } from '@/stores/menu'
 import type { MenuItem, CreateMenuItemRequest, UpdateMenuItemRequest } from '@/types'
@@ -161,7 +434,8 @@ const formRef = ref<FormInst | null>(null)
 const loading = ref(false)
 const error = ref<string | null>(null)
 const menuItems = ref<MenuItem[]>([])
-const expandedKeys = ref<string[]>([])
+const expandedIds = ref<string[]>([])
+const allExpanded = ref(false)
 
 // Dialog state
 const showDialog = ref(false)
@@ -228,11 +502,20 @@ const formRules: FormRules = {
 }
 
 // Computed
-const treeData = computed<TreeOption[]>(() => {
-  return buildTree(menuItems.value.filter(item => !item.parentId))
+const topLevelMenus = computed({
+  get: () => menuItems.value.filter(item => !item.parentId).sort((a, b) => a.order - b.order),
+  set: (newValue) => {
+    // Update the order when drag-drop happens
+    newValue.forEach((item, index) => {
+      const originalItem = menuItems.value.find(m => m.id === item.id)
+      if (originalItem) {
+        originalItem.order = index
+      }
+    })
+  }
 })
 
-const parentOptions = computed<TreeOption[]>(() => {
+const parentOptions = computed(() => {
   // Exclude current item and its descendants when editing
   const availableItems = currentEditId.value
     ? menuItems.value.filter(item =>
@@ -244,27 +527,8 @@ const parentOptions = computed<TreeOption[]>(() => {
   return buildTreeOptions(availableItems.filter(item => !item.parentId))
 })
 
-const disabledParentField = (option: TreeOption) => {
-  return option.key === currentEditId.value
-}
-
 // Methods
-function buildTree(items: MenuItem[], level = 0): TreeOption[] {
-  return items
-    .sort((a, b) => a.order - b.order)
-    .map(item => ({
-      key: item.id,
-      label: item.label,
-      children: buildTree(
-        menuItems.value.filter(child => child.parentId === item.id),
-        level + 1
-      ),
-      _rawData: item,
-      _level: level
-    }))
-}
-
-function buildTreeOptions(items: MenuItem[]): TreeOption[] {
+function buildTreeOptions(items: MenuItem[]): any[] {
   return items
     .sort((a, b) => a.order - b.order)
     .map(item => ({
@@ -283,6 +547,61 @@ function isDescendant(itemId: string, ancestorId: string): boolean {
   return isDescendant(item.parentId, ancestorId)
 }
 
+function getChildren(parentId: string): MenuItem[] {
+  return menuItems.value
+    .filter(item => item.parentId === parentId)
+    .sort((a, b) => a.order - b.order)
+}
+
+function toggleExpand(id: string) {
+  const index = expandedIds.value.indexOf(id)
+  if (index > -1) {
+    expandedIds.value.splice(index, 1)
+  } else {
+    expandedIds.value.push(id)
+  }
+}
+
+function toggleExpandAll() {
+  if (allExpanded.value) {
+    expandedIds.value = []
+    allExpanded.value = false
+  } else {
+    expandedIds.value = topLevelMenus.value
+      .filter(item => hasChildren(item))
+      .map(item => item.id)
+    allExpanded.value = true
+  }
+}
+
+function getMenuIcon(iconOrType: string) {
+  const iconMap: Record<string, any> = {
+    home: HomeOutline,
+    cube: CubeOutline,
+    newspaper: NewspaperOutline,
+    document: DocumentTextOutline,
+    PAGE: HomeOutline,
+    POST_LIST: NewspaperOutline,
+    PRODUCT: CubeOutline,
+    page: HomeOutline,
+    postList: NewspaperOutline,
+    product: CubeOutline
+  }
+  return iconMap[iconOrType] || DocumentTextOutline
+}
+
+function getTypeTagType(type: string): 'default' | 'success' | 'info' | 'warning' {
+  const map: Record<string, 'default' | 'success' | 'info' | 'warning'> = {
+    PAGE: 'default',
+    POST_LIST: 'success',
+    PRODUCT: 'info',
+    page: 'default',
+    postList: 'success',
+    product: 'info'
+  }
+  return map[type] || 'default'
+}
+
 function hasChildren(item: MenuItem): boolean {
   return menuItems.value.some(i => i.parentId === item.id)
 }
@@ -291,51 +610,29 @@ function canDeleteItem(item: MenuItem): boolean {
   return !hasChildren(item)
 }
 
-function renderLabel({ option }: { option: TreeOption }) {
-  const item = (option._rawData as MenuItem)
-  return h('div', { class: 'menu-item-label' }, [
-    h('span', { class: 'label-text' }, option.label),
-    h('span', { class: 'label-meta' }, [
-      h('n-tag', { size: 'small', type: getTypeColor(item.type) }, { default: () => getTypeLabel(item.type) }),
-      !item.isVisible && h('n-tag', { size: 'small', type: 'warning' }, { default: () => '隐藏' }),
-      !item.isActive && h('n-tag', { size: 'small', type: 'error' }, { default: () => '禁用' })
-    ])
-  ])
-}
-
-function renderSuffix({ option }: { option: TreeOption }) {
-  const item = (option._rawData as MenuItem)
-  return h('div', { class: 'menu-item-actions' }, [
-    h('n-button', {
-      size: 'small',
-      quaternary: true,
-      onClick: () => handleEdit(item)
-    }, { icon: () => h('n-icon', null, { default: () => h(CreateOutline) }) }),
-    h('n-button', {
-      size: 'small',
-      quaternary: true,
-      type: 'error',
-      onClick: () => handleDelete(item)
-    }, { icon: () => h('n-icon', null, { default: () => h(TrashOutline) }) })
-  ])
-}
 
 function getTypeLabel(type: string): string {
   const map: Record<string, string> = {
+    PAGE: '单页',
+    POST_LIST: '文章列表',
+    PRODUCT: '产品',
     page: '单页',
-    postList: '文章',
+    postList: '文章列表',
     product: '产品'
   }
   return map[type] || type
 }
 
-function getTypeColor(type: string): 'default' | 'success' | 'info' | 'warning' {
-  const map: Record<string, 'default' | 'success' | 'info' | 'warning'> = {
-    page: 'default',
-    postList: 'success',
-    product: 'info'
+function getTypeColor(type: string): string {
+  const map: Record<string, string> = {
+    PAGE: '#18a058',
+    POST_LIST: '#2080f0',
+    PRODUCT: '#f0a020',
+    page: '#18a058',
+    postList: '#2080f0',
+    product: '#f0a020'
   }
-  return map[type] || 'default'
+  return map[type] || '#666'
 }
 
 async function loadMenuItems() {
@@ -362,11 +659,46 @@ function handleCreate() {
     slug: '',
     type: 'page',
     linkType: 'internal',
-    order: menuItems.value.length,
+    parentId: undefined,
+    order: topLevelMenus.value.length,
     isVisible: true,
     isActive: true
   }
   showDialog.value = true
+}
+
+function handleCreateChild(parent: MenuItem) {
+  dialogMode.value = 'create'
+  currentEditId.value = null
+  const childrenCount = getChildren(parent.id).length
+  formData.value = {
+    menuCode: parent.menuCode,
+    label: '',
+    slug: '',
+    type: 'page',
+    linkType: 'internal',
+    parentId: parent.id,
+    order: childrenCount,
+    isVisible: true,
+    isActive: true
+  }
+  showDialog.value = true
+
+  // Auto-expand parent if collapsed
+  if (!expandedIds.value.includes(parent.id)) {
+    expandedIds.value.push(parent.id)
+  }
+}
+
+async function handleToggleVisibility(item: MenuItem) {
+  try {
+    await menuApi.toggleMenuVisibility(item.id)
+    item.isVisible = !item.isVisible
+    message.success(item.isVisible ? '已显示' : '已隐藏')
+    await menuStore.refreshMenu()
+  } catch (err: any) {
+    message.error('操作失败')
+  }
 }
 
 function handleEdit(item: MenuItem) {
@@ -461,29 +793,38 @@ function handleCancel() {
   }
 }
 
-function handleExpandedKeysChange(keys: string[]) {
-  expandedKeys.value = keys
-}
-
-async function handleDrop({ node, dragNode, dropPosition }: any) {
-  // This would be implemented with more complex logic
-  // For now, just trigger a reorder
-  await handleReorder(menuItems.value)
-}
-
-async function handleReorder(items: MenuItem[]) {
+async function handleTopLevelReorder() {
   try {
-    const orderData = items.map((item, index) => ({
+    const orderData = topLevelMenus.value.map((item, index) => ({
       id: item.id,
-      order: index,
-      parentId: item.parentId
+      order: index
     }))
 
     await menuApi.updateMenuOrder(orderData)
     message.success('排序已更新')
     await loadMenuItems()
+    await menuStore.refreshMenu()
   } catch (err: any) {
     message.error('排序更新失败')
+    await loadMenuItems() // Revert on error
+  }
+}
+
+async function handleChildReorder(evt: any, parentId: string) {
+  try {
+    const children = getChildren(parentId)
+    const orderData = children.map((item, index) => ({
+      id: item.id,
+      order: index
+    }))
+
+    await menuApi.updateMenuOrder(orderData)
+    message.success('排序已更新')
+    await loadMenuItems()
+    await menuStore.refreshMenu()
+  } catch (err: any) {
+    message.error('排序更新失败')
+    await loadMenuItems() // Revert on error
   }
 }
 
@@ -497,6 +838,7 @@ defineExpose({
   loading,
   error,
   menuItems,
+  expandedIds,
   showDialog,
   dialogMode,
   currentEditId,
@@ -504,13 +846,18 @@ defineExpose({
   deleteConfirmVisible,
   deleteTarget,
   handleCreate,
+  handleCreateChild,
   handleEdit,
   handleDelete,
+  handleToggleVisibility,
   confirmDelete,
   handleSubmit,
   validateForm,
   canDeleteItem,
-  handleReorder
+  handleTopLevelReorder,
+  handleChildReorder,
+  toggleExpand,
+  toggleExpandAll
 })
 </script>
 
@@ -519,48 +866,206 @@ defineExpose({
   width: 100%;
 }
 
+.header-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.header-content h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+}
+
 .loading-container {
   display: flex;
   justify-content: center;
   padding: 60px 0;
 }
 
-.menu-tree {
-  margin-top: 16px;
+.menu-list {
+  margin-top: 20px;
 }
 
-.menu-item-label {
+.menu-items-container,
+.child-items-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.menu-item-wrapper {
+  width: 100%;
+}
+
+.menu-item-card {
+  transition: all 0.3s ease;
+  border-left: 4px solid transparent;
+}
+
+.menu-item-card.top-level {
+  background: var(--n-color);
+  border-left-color: var(--n-primary-color);
+}
+
+.menu-item-card.top-level.has-children {
+  border-left-color: var(--n-info-color);
+}
+
+.menu-item-card.child-level {
+  background: var(--n-color-embedded);
+  border-left-color: var(--n-border-color);
+}
+
+.menu-item-card:hover {
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+.menu-item-content {
   display: flex;
   align-items: center;
-  gap: 12px;
-  flex: 1;
+  gap: 16px;
+  padding: 4px 0;
 }
 
-.label-text {
-  font-weight: 500;
-}
-
-.label-meta {
+.drag-handle {
+  cursor: move;
+  color: var(--n-text-color-3);
   display: flex;
-  gap: 6px;
+  align-items: center;
+  opacity: 0.4;
+  transition: opacity 0.3s;
 }
 
-.menu-item-actions {
+.menu-item-card:hover .drag-handle {
+  opacity: 1;
+}
+
+.expand-toggle {
+  cursor: pointer;
+  color: var(--n-text-color-2);
+  display: flex;
+  align-items: center;
+  width: 24px;
+  height: 24px;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.3s;
+}
+
+.expand-toggle:hover {
+  background: var(--n-color-hover);
+}
+
+.expand-toggle-placeholder {
+  width: 24px;
+  height: 24px;
+}
+
+.menu-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: var(--n-color-embedded);
+}
+
+.menu-icon.small {
+  width: 32px;
+  height: 32px;
+}
+
+.menu-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.menu-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.title-text {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--n-text-color-1);
+}
+
+.menu-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.menu-meta .slug {
+  color: var(--n-text-color-3);
+  font-family: 'Consolas', 'Monaco', monospace;
+}
+
+.menu-meta .order {
+  color: var(--n-text-color-3);
+}
+
+.menu-actions {
   display: flex;
   gap: 4px;
   margin-left: auto;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.menu-item-card:hover .menu-actions {
+  opacity: 1;
+}
+
+.child-menus {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--n-divider-color);
+}
+
+.child-items-container {
+  gap: 8px;
+}
+
+/* Expand transition */
+.expand-enter-active,
+.expand-leave-active {
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.expand-enter-from,
+.expand-leave-to {
+  max-height: 0;
+  opacity: 0;
+}
+
+.expand-enter-to,
+.expand-leave-from {
+  max-height: 1000px;
+  opacity: 1;
 }
 
 .warning {
-  color: var(--n-color-warning);
+  color: var(--n-warning-color);
   margin-top: 8px;
+  font-size: 14px;
 }
 
-:deep(.n-tree-node-content) {
-  padding: 8px 12px;
+/* Dragging styles */
+:deep(.sortable-ghost) {
+  opacity: 0.4;
 }
 
-:deep(.n-tree-node) {
-  margin-bottom: 4px;
+:deep(.sortable-drag) {
+  opacity: 0.8;
+  transform: rotate(2deg);
 }
 </style>

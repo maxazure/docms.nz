@@ -37,7 +37,7 @@ export class ProductService {
   }
 
   async findAll(query: ProductQueryDto = {}) {
-    const { page = 1, limit = 10, categoryId, search, minPrice, maxPrice, isActive } = query;
+    const { page = 1, limit = 10, categoryId, search, minPrice, maxPrice, isActive, isFeatured } = query;
     const skip = (page - 1) * limit;
 
     const where: any = {};
@@ -48,6 +48,10 @@ export class ProductService {
 
     if (isActive !== undefined) {
       where.isActive = isActive;
+    }
+
+    if (isFeatured !== undefined) {
+      where.isFeatured = isFeatured;
     }
 
     if (search) {
@@ -186,6 +190,28 @@ export class ProductService {
       where: { id },
       data: {
         isActive: !product.isActive,
+      },
+    });
+  }
+
+  async toggleFeatured(id: string, user: any): Promise<Product> {
+    // Only admin can toggle featured status
+    if (user.role !== UserRole.ADMIN) {
+      throw new ForbiddenException('权限不足');
+    }
+
+    const product = await this.prisma.product.findUnique({
+      where: { id },
+    });
+
+    if (!product) {
+      throw new NotFoundException('产品不存在');
+    }
+
+    return this.prisma.product.update({
+      where: { id },
+      data: {
+        isFeatured: !product.isFeatured,
       },
     });
   }

@@ -13,8 +13,8 @@ export class MediaService {
    * Create new media record
    */
   async createMedia(createMediaDto: CreateMediaDto, user?: any): Promise<Media> {
-    // Check permissions - only ADMIN, EDITOR, and AUTHOR can upload media
-    if (user && ![UserRole.ADMIN, UserRole.EDITOR, UserRole.AUTHOR].includes(user.role)) {
+    // Check permissions - only OWNER, ADMIN, EDITOR, and AUTHOR can upload media
+    if (user && ![UserRole.OWNER, UserRole.ADMIN, UserRole.EDITOR, UserRole.AUTHOR].includes(user.role)) {
       throw new ForbiddenException('权限不足');
     }
 
@@ -110,8 +110,8 @@ export class MediaService {
   async update(id: string, updateMediaDto: UpdateMediaDto, user?: any): Promise<Media> {
     const existingMedia = await this.findOne(id);
 
-    // Check permissions - only ADMIN and EDITOR can update media metadata
-    if (user && ![UserRole.ADMIN, UserRole.EDITOR].includes(user.role)) {
+    // Check permissions - only OWNER, ADMIN and EDITOR can update media metadata
+    if (user && ![UserRole.OWNER, UserRole.ADMIN, UserRole.EDITOR].includes(user.role)) {
       throw new ForbiddenException('权限不足');
     }
 
@@ -150,8 +150,8 @@ export class MediaService {
   async remove(id: string, user?: any): Promise<Media> {
     const existingMedia = await this.findOne(id);
 
-    // Check permissions - only ADMIN and EDITOR can delete media
-    if (user && ![UserRole.ADMIN, UserRole.EDITOR].includes(user.role)) {
+    // Check permissions - only OWNER, ADMIN and EDITOR can delete media
+    if (user && ![UserRole.OWNER, UserRole.ADMIN, UserRole.EDITOR].includes(user.role)) {
       throw new ForbiddenException('权限不足');
     }
 

@@ -15,6 +15,13 @@ async function bootstrap() {
     }),
   );
 
+  // Register multipart/form-data support for file uploads
+  await app.register(require('@fastify/multipart'), {
+    limits: {
+      fileSize: 10 * 1024 * 1024, // 10MB
+    },
+  });
+
   // Global validation pipe
   app.useGlobalPipes(
     new ValidationPipe({

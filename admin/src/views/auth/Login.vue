@@ -77,13 +77,14 @@ import { reactive, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useMessage } from 'naive-ui'
 import { MailOutline, LockClosedOutline } from '@vicons/ionicons5'
-import { useAuthStore } from '@/stores/auth'
+import { useAuthStore, useMenuStore } from '@/stores'
 import type { FormInst, FormRules } from 'naive-ui'
 
 const router = useRouter()
 const route = useRoute()
 const message = useMessage()
 const authStore = useAuthStore()
+const menuStore = useMenuStore()
 
 const formRef = ref<FormInst>()
 const loading = ref(false)
@@ -118,6 +119,9 @@ const handleLogin = async () => {
       email: formData.email,
       password: formData.password
     })
+
+    // 登录成功后初始化菜单
+    await menuStore.init()
 
     message.success('登录成功')
 

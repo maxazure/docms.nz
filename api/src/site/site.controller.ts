@@ -19,16 +19,13 @@ import { User } from '../auth/decorators/user.decorator';
 
 @ApiTags('Site')
 @Controller('site')
-@UseGuards(JwtAuthGuard)
-@ApiBearerAuth()
 export class SiteController {
   constructor(private readonly siteService: SiteService) {}
 
   @Get()
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: '获取站点配置' })
+  @ApiOperation({ summary: '获取站点配置（公开访问）' })
   @ApiResponse({ status: 200, description: '获取成功' })
-  @ApiResponse({ status: 401, description: '未授权访问' })
   @ApiResponse({ status: 404, description: '站点未找到' })
   async getSite() {
     try {
@@ -47,6 +44,8 @@ export class SiteController {
   }
 
   @Put()
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @Roles(UserRole.ADMIN, UserRole.OWNER)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: '更新站点配置' })
@@ -86,6 +85,8 @@ export class SiteController {
   }
 
   @Put('theme')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @Roles(UserRole.ADMIN, UserRole.OWNER)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: '更新主题配置' })

@@ -33,7 +33,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, h } from 'vue'
+import { computed, h, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { NIcon } from 'naive-ui'
 import type { MenuOption } from 'naive-ui'
@@ -90,11 +90,11 @@ const iconMap: Record<string, any> = {
 const getRoutePathByType = (menuItem: MenuItem): string => {
   const { id, slug, type } = menuItem
   switch (type) {
-    case 'page':
+    case 'PAGE':
       return `/pages/${slug || id}`
-    case 'postList':
+    case 'POST_LIST':
       return `/posts?menuId=${id}`
-    case 'product':
+    case 'PRODUCT':
       return `/products?menuId=${id}`
     default:
       return `/pages/${slug || id}`
@@ -185,6 +185,81 @@ const menuOptions = computed<MenuOption[]>(() => {
 
   return options
 })
+
+// Add DOM-level click handler to intercept menu clicks
+onMounted(() => {
+  // Wait for next tick to ensure menu is rendered
+  setTimeout(() => {
+    const sidebarEl = document.querySelector('.app-sidebar')
+    if (!sidebarEl) return
+
+    // Recursively find all menu option keys
+    const getAllMenuKeys = (): string[] => {
+      const keys: string[] = []
+      menuOptions.value.forEach(group => {
+        if (group.children) {
+          group.children.forEach((item: any) => {
+            if (typeof item.key === 'string') {
+              keys.push(item.key)
+            }
+            if (item.children) {
+              item.children.forEach((child: any) => {
+                if (typeof child.key === 'string') {
+                  keys.push(child.key)
+                }
+              })
+            }
+          })
+        }
+      })
+      return keys
+    }
+
+    const allKeys = getAllMenuKeys()
+    console.log('[AppSidebar] All menu keys:', allKeys)
+
+    sidebarEl.addEventListener('click', (e) => {
+      const target = e.target as HTMLElement
+      // Find the closest menu item
+      const menuItem = target.closest('.n-menu-item')
+      if (menuItem) {
+        console.log('[AppSidebar] Menu item clicked, searching for matching route...')
+        // Try to find which key this item corresponds to by checking the text content
+        const textContent = menuItem.textContent?.trim()
+        console.log('[AppSidebar] Menu item text:', textContent)
+
+        // Match by looking at menu options
+        for (const key of allKeys) {
+          const option = findOptionByKey(key, menuOptions.value)
+          if (option && option.label === textContent) {
+            console.log('[AppSidebar] Found matching route:', key)
+            if (key !== router.currentRoute.value.path) {
+              router.push(key)
+            }
+            break
+          }
+        }
+      }
+    }, true) // Use capture phase
+  }, 100)
+})
+
+// Helper to find menu option by key
+function findOptionByKey(key: string, options: any[]): any {
+  for (const opt of options) {
+    if (opt.key === key) return opt
+    if (opt.children) {
+      for (const child of opt.children) {
+        if (child.key === key) return child
+        if (child.children) {
+          const found = findOptionByKey(key, child.children)
+          if (found) return found
+        }
+      }
+    }
+  }
+  return null
+}
 </script>
 
 <style scoped>

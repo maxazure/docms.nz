@@ -18,7 +18,7 @@ export function getProductList(params?: ProductListQuery): Promise<ListResponse<
 }
 
 export function getProduct(id: string): Promise<Product> {
-  return http.get(`/api/products/${id}`)
+  return http.get(`/products/${id}`)
 }
 
 export function createProduct(data: CreateProductDto): Promise<Product> {
@@ -26,19 +26,19 @@ export function createProduct(data: CreateProductDto): Promise<Product> {
 }
 
 export function updateProduct(id: string, data: UpdateProductDto): Promise<Product> {
-  return http.put(`/api/products/${id}`, data)
+  return http.put(`/products/${id}`, data)
 }
 
 export function deleteProduct(id: string): Promise<void> {
-  return http.delete(`/api/products/${id}`)
+  return http.delete(`/products/${id}`)
 }
 
 export function toggleActive(id: string): Promise<Product> {
-  return http.post(`/api/products/${id}/toggle-active`)
+  return http.post(`/products/${id}/toggle-active`)
 }
 
 export function toggleFeatured(id: string): Promise<Product> {
-  return http.post(`/api/products/${id}/toggle-featured`)
+  return http.post(`/products/${id}/toggle-featured`)
 }
 
 export function getProductCategories(): Promise<ProductCategory[]> {

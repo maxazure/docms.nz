@@ -45,6 +45,7 @@ export class CategoryService {
       data: {
         name: createCategoryDto.name,
         slug: createCategoryDto.slug,
+        menuItemId: createCategoryDto.menuItemId,
         parentId: createCategoryDto.parentId,
         order: createCategoryDto.order || 0,
         isActive: true,
@@ -55,21 +56,48 @@ export class CategoryService {
   }
 
   /**
-   * Get all categories
+   * Get all categories with usage statistics
    */
-  async findAll(query: CategoryQueryDto = {}): Promise<Category[]> {
+  async findAll(query: CategoryQueryDto = {}): Promise<any[]> {
     const where: any = {};
 
     if (!query.includeInactive) {
       where.isActive = true;
     }
 
+    // Filter by menuItemId if provided
+    if (query.menuItemId) {
+      where.menuItemId = query.menuItemId;
+    }
+
     const categories = await this.prisma.category.findMany({
       where,
       orderBy: { order: 'asc' },
+      include: {
+        parent: true,
+        children: {
+          where: { isActive: true },
+        },
+        products: true,
+        postCategories: true,
+      },
     });
 
-    return categories;
+    // Add usage statistics
+    return categories.map((category: any) => ({
+      id: category.id,
+      name: category.name,
+      slug: category.slug,
+      parentId: category.parentId,
+      order: category.order,
+      isActive: category.isActive,
+      createdAt: category.createdAt,
+      updatedAt: category.updatedAt,
+      parent: category.parent,
+      productsCount: category.products?.length || 0,
+      postsCount: category.postCategories?.length || 0,
+      childrenCount: category.children?.length || 0,
+    }));
   }
 
   /**
@@ -197,8 +225,10 @@ export class CategoryService {
       where: { id },
       include: {
         children: true,
+        products: true,
+        postCategories: true,
       },
-    });
+    }) as any;
 
     if (!category) {
       throw new NotFoundException('分类不存在');
@@ -207,6 +237,20 @@ export class CategoryService {
     // Check if category has children
     if (category.children && category.children.length > 0) {
       throw new BadRequestException('该分类下有子分类，无法删除');
+    }
+
+    // Check if category is being used by products
+    if (category.products && category.products.length > 0) {
+      throw new BadRequestException(
+        `该分类正被 ${category.products.length} 个产品使用，无法删除`,
+      );
+    }
+
+    // Check if category is being used by posts
+    if (category.postCategories && category.postCategories.length > 0) {
+      throw new BadRequestException(
+        `该分类正被 ${category.postCategories.length} 篇文章使用，无法删除`,
+      );
     }
 
     const deletedCategory = await this.prisma.category.delete({

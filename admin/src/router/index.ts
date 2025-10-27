@@ -137,6 +137,20 @@ const routes: RouteRecordRaw[] = [
         name: 'AuditLog',
         component: () => import('@/views/audit/AuditLogList.vue'),
         meta: { title: '审计日志' }
+      },
+      // 个人资料
+      {
+        path: 'profile',
+        name: 'UserProfile',
+        component: () => import('@/views/profile/UserProfile.vue'),
+        meta: { title: '个人资料' }
+      },
+      // 账户设置
+      {
+        path: 'settings',
+        name: 'AccountSettings',
+        component: () => import('@/views/profile/AccountSettings.vue'),
+        meta: { title: '账户设置' }
       }
     ]
   },

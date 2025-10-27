@@ -58,28 +58,28 @@ export async function unpublishPost(id: string): Promise<Post> {
 // ==================== Categories ====================
 
 export async function getCategoryList(params?: CategoryListQuery): Promise<Category[]> {
-  const response = await http.get('/posts/categories', { params })
-  // Unwrap the API response: response.data = {success: true, data: [...]}
-  return response.data.data || []
+  const response = await http.get('/categories', { params })
+  // API returns array directly
+  return response.data
 }
 
 export async function getCategory(id: string): Promise<Category> {
-  const response = await http.get(`/api/posts/categories/${id}`)
+  const response = await http.get(`/categories/${id}`)
   return response.data
 }
 
 export async function createCategory(data: CreateCategoryDto): Promise<Category> {
-  const response = await http.post('/posts/categories', data)
+  const response = await http.post('/categories', data)
   return response.data
 }
 
 export async function updateCategory(id: string, data: UpdateCategoryDto): Promise<Category> {
-  const response = await http.put(`/api/posts/categories/${id}`, data)
+  const response = await http.put(`/categories/${id}`, data)
   return response.data
 }
 
 export async function deleteCategory(id: string): Promise<void> {
-  const response = await http.delete(`/api/posts/categories/${id}`)
+  const response = await http.delete(`/categories/${id}`)
   return response.data
 }
 

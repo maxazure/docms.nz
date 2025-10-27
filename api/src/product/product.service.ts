@@ -108,6 +108,21 @@ export class ProductService {
     return product;
   }
 
+  async findBySlug(slug: string): Promise<Product> {
+    const product = await this.prisma.product.findUnique({
+      where: { slug },
+      include: {
+        category: true,
+      },
+    });
+
+    if (!product) {
+      throw new NotFoundException('产品不存在');
+    }
+
+    return product;
+  }
+
   async update(id: string, updateProductDto: UpdateProductDto, user: any): Promise<Product> {
     // Check permissions - only ADMIN and EDITOR can update products
     if (user.role !== UserRole.ADMIN && user.role !== UserRole.EDITOR) {

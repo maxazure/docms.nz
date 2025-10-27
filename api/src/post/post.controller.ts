@@ -50,6 +50,14 @@ export class PostController {
     return this.postService.getTags();
   }
 
+  @Get('by-slug/:slug')
+  @ApiOperation({ summary: '根据slug获取文章详情' })
+  @ApiResponse({ status: 200, description: '获取成功', type: PostResponseDto })
+  @ApiResponse({ status: 404, description: '文章未找到' })
+  async getBySlug(@Param('slug') slug: string) {
+    return this.postService.findBySlug(slug);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: '获取文章详情' })
   @ApiResponse({ status: 200, description: '获取成功', type: PostResponseDto })

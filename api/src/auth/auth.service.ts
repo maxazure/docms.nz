@@ -184,4 +184,56 @@ export class AuthService {
 
     return password;
   }
+
+  async updateProfile(userId: string, updateData: {
+    displayName?: string;
+    avatar?: string;
+  }): Promise<Partial<User>> {
+    // Filter out undefined values and only include supported fields
+    const dataToUpdate: any = {};
+    if (updateData.displayName !== undefined) {
+      dataToUpdate.displayName = updateData.displayName;
+    }
+    if (updateData.avatar !== undefined) {
+      dataToUpdate.avatar = updateData.avatar;
+    }
+
+    const user = await this.prisma.user.update({
+      where: { id: userId },
+      data: dataToUpdate,
+    });
+
+    const { passwordHash, ...result } = user;
+    return result;
+  }
+
+  async changePassword(userId: string, oldPassword: string, newPassword: string): Promise<void> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new BadRequestException('用户不存在');
+    }
+
+    // Verify old password
+    const isPasswordValid = await bcrypt.compare(oldPassword, user.passwordHash);
+    if (!isPasswordValid) {
+      throw new BadRequestException('当前密码不正确');
+    }
+
+    // Validate new password
+    if (newPassword.length < 6) {
+      throw new BadRequestException('新密码长度至少为6位');
+    }
+
+    // Hash new password
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+
+    // Update password
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash },
+    });
+  }
 }

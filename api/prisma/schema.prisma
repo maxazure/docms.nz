@@ -16,6 +16,7 @@ model User {
   email        String   @unique
   passwordHash String
   displayName  String?
+  avatar       String?
   role         UserRole @default(VIEWER)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -89,6 +90,7 @@ model MenuItem {
   page     Page?
   posts    Post[]
   products Product[]
+  categories Category[]
 
   @@map("menu_items")
 }
@@ -107,20 +109,22 @@ enum LinkType {
 
 // Content Categories
 model Category {
-  id        String   @id @default(cuid())
-  name      String
-  slug      String   @unique
-  parentId  String?
-  order     Int      @default(0)
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String   @id @default(cuid())
+  name       String
+  slug       String   @unique
+  menuItemId String?  // Which menu item this category belongs to
+  parentId   String?
+  order      Int      @default(0)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   // Relations
-  parent    Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
-  children  Category[] @relation("CategoryHierarchy")
+  menuItem   MenuItem? @relation(fields: [menuItemId], references: [id])
+  parent     Category? @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children   Category[] @relation("CategoryHierarchy")
   postCategories PostCategory[]
-  products  Product[]
+  products   Product[]
 
   @@map("categories")
 }

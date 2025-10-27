@@ -88,69 +88,7 @@ async function main() {
 
   console.log(`✅ 创建了 4 个用户账户`);
 
-  // 3. 创建分类
-  console.log('\n📁 创建内容分类...');
-
-  const categoryHome = await prisma.category.create({
-    data: {
-      name: '家庭水培',
-      slug: 'home-hydroponics',
-      order: 1,
-      isActive: true,
-    },
-  });
-
-  const categoryCommercial = await prisma.category.create({
-    data: {
-      name: '商业水培',
-      slug: 'commercial-hydroponics',
-      order: 2,
-      isActive: true,
-    },
-  });
-
-  const categoryEducation = await prisma.category.create({
-    data: {
-      name: '水培教程',
-      slug: 'hydroponics-education',
-      order: 3,
-      isActive: true,
-    },
-  });
-
-  const categoryNews = await prisma.category.create({
-    data: {
-      name: '行业资讯',
-      slug: 'industry-news',
-      order: 4,
-      isActive: true,
-    },
-  });
-
-  // 子分类
-  const categoryBeginner = await prisma.category.create({
-    data: {
-      name: '新手入门',
-      slug: 'beginner-guide',
-      parentId: categoryEducation.id,
-      order: 1,
-      isActive: true,
-    },
-  });
-
-  const categoryAdvanced = await prisma.category.create({
-    data: {
-      name: '进阶技巧',
-      slug: 'advanced-techniques',
-      parentId: categoryEducation.id,
-      order: 2,
-      isActive: true,
-    },
-  });
-
-  console.log(`✅ 创建了 6 个分类`);
-
-  // 4. 创建标签
+  // 3. 创建标签
   console.log('\n🏷️  创建内容标签...');
 
   const tags = await Promise.all([
@@ -238,7 +176,75 @@ async function main() {
 
   console.log(`✅ 创建了 5 个菜单项`);
 
-  // 6. 创建页面
+  // 6. 创建分类
+  console.log('\n📁 创建内容分类...');
+
+  const categoryHome = await prisma.category.create({
+    data: {
+      name: '家庭水培',
+      slug: 'home-hydroponics',
+      menuItemId: menuProducts.id,
+      order: 1,
+      isActive: true,
+    },
+  });
+
+  const categoryCommercial = await prisma.category.create({
+    data: {
+      name: '商业水培',
+      slug: 'commercial-hydroponics',
+      menuItemId: menuProducts.id,
+      order: 2,
+      isActive: true,
+    },
+  });
+
+  const categoryEducation = await prisma.category.create({
+    data: {
+      name: '水培教程',
+      slug: 'hydroponics-education',
+      menuItemId: menuEducation.id,
+      order: 3,
+      isActive: true,
+    },
+  });
+
+  const categoryNews = await prisma.category.create({
+    data: {
+      name: '行业资讯',
+      slug: 'industry-news',
+      menuItemId: menuNews.id,
+      order: 4,
+      isActive: true,
+    },
+  });
+
+  // 子分类
+  const categoryBeginner = await prisma.category.create({
+    data: {
+      name: '新手入门',
+      slug: 'beginner-guide',
+      menuItemId: menuEducation.id,
+      parentId: categoryEducation.id,
+      order: 1,
+      isActive: true,
+    },
+  });
+
+  const categoryAdvanced = await prisma.category.create({
+    data: {
+      name: '进阶技巧',
+      slug: 'advanced-techniques',
+      menuItemId: menuEducation.id,
+      parentId: categoryEducation.id,
+      order: 2,
+      isActive: true,
+    },
+  });
+
+  console.log(`✅ 创建了 6 个分类`);
+
+  // 7. 创建页面
   console.log('\n📄 创建静态页面...');
 
   const homePage = await prisma.page.create({

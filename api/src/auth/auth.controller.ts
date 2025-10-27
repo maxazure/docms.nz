@@ -2,6 +2,7 @@ import {
   Controller,
   Post,
   Get,
+  Put,
   Body,
   UseGuards,
   Request,
@@ -10,7 +11,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthService, AuthResponse } from './auth.service';
-import { RegisterDto, LoginDto, RefreshTokenDto, ResetPasswordDto } from './dto';
+import { RegisterDto, LoginDto, RefreshTokenDto, ResetPasswordDto, UpdateProfileDto, ChangePasswordDto } from './dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { User } from './decorators/user.decorator';
 
@@ -127,6 +128,51 @@ export class AuthController {
     return {
       success: true,
       data: user,
+    };
+  }
+
+  @Put('profile')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: '更新用户个人资料' })
+  @ApiResponse({ status: 200, description: '更新成功' })
+  @ApiResponse({ status: 401, description: '未授权访问' })
+  async updateProfile(
+    @User() user: any,
+    @Body() updateProfileDto: UpdateProfileDto,
+  ) {
+    const updatedUser = await this.authService.updateProfile(
+      user.userId,
+      updateProfileDto,
+    );
+    return {
+      success: true,
+      message: '个人资料更新成功',
+      data: updatedUser,
+    };
+  }
+
+  @Post('change-password')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: '修改密码' })
+  @ApiResponse({ status: 200, description: '密码修改成功' })
+  @ApiResponse({ status: 400, description: '当前密码不正确' })
+  @ApiResponse({ status: 401, description: '未授权访问' })
+  async changePassword(
+    @User() user: any,
+    @Body() changePasswordDto: ChangePasswordDto,
+  ) {
+    await this.authService.changePassword(
+      user.userId,
+      changePasswordDto.oldPassword,
+      changePasswordDto.newPassword,
+    );
+    return {
+      success: true,
+      message: '密码修改成功',
     };
   }
 }

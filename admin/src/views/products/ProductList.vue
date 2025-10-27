@@ -1,16 +1,43 @@
 <template>
   <div class="product-list">
-    <n-space vertical :size="16">
-      <!-- Header -->
-      <n-space justify="space-between" align="center">
-        <h2>产品管理</h2>
-        <n-button type="primary" @click="handleCreate">
-          <template #icon><n-icon><Add /></n-icon></template>
-          新建产品
-        </n-button>
-      </n-space>
+    <div class="product-list-container">
+      <!-- Left Sidebar: Category Tree -->
+      <div class="category-sidebar">
+        <div class="category-header">
+          <h3>产品分类</h3>
+          <n-button text @click="showCategoryManager = true">
+            <template #icon><n-icon><Settings /></n-icon></template>
+            管理
+          </n-button>
+        </div>
+        <div class="category-tree-container">
+          <n-alert v-if="!menuId" type="warning" style="margin-bottom: 12px" :bordered="false">
+            请从左侧菜单点击"产品中心"进入，以查看对应的分类
+          </n-alert>
+          <n-tree
+            block-line
+            :data="categoryTreeData"
+            :selected-keys="selectedKeys"
+            :expanded-keys="expandedKeys"
+            @update:selected-keys="handleCategorySelect"
+            @update:expanded-keys="handleExpandedKeysChange"
+          />
+        </div>
+      </div>
 
-      <!-- Filters -->
+      <!-- Right Content Area -->
+      <div class="content-area">
+        <n-space vertical :size="16">
+          <!-- Header -->
+          <n-space justify="space-between" align="center">
+            <h2>产品管理</h2>
+            <n-button type="primary" @click="handleCreate">
+              <template #icon><n-icon><Add /></n-icon></template>
+              新建产品
+            </n-button>
+          </n-space>
+
+          <!-- Filters -->
       <n-space>
         <n-input
           v-model:value="searchKeyword"
@@ -53,7 +80,7 @@
         <n-button @click="handleReset">重置</n-button>
       </n-space>
 
-      <!-- Table -->
+          <!-- Table -->
       <n-data-table
         :columns="columns"
         :data="products"
@@ -62,15 +89,27 @@
         @update:page="handlePageChange"
         @update:page-size="handlePageSizeChange"
       />
-    </n-space>
+        </n-space>
+      </div>
+    </div>
+
+    <!-- Category Manager Modal -->
+    <n-modal
+      v-model:show="showCategoryManager"
+      preset="card"
+      title="分类管理"
+      style="width: 90%; max-width: 1200px"
+    >
+      <category-manager :menu-item-id="menuId" @update="loadCategories" />
+    </n-modal>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, h, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { useMessage, useDialog, NButton, NSpace, NTag, NSwitch, type DataTableColumns } from 'naive-ui'
-import { Add, Search } from '@vicons/ionicons5'
+import { useMessage, useDialog, NButton, NSpace, NTag, NSwitch, NAlert, type DataTableColumns, type TreeOption } from 'naive-ui'
+import { Add, Search, Settings } from '@vicons/ionicons5'
 import type { Product } from '@/types/product'
 import {
   getProductList,
@@ -78,6 +117,8 @@ import {
   toggleActive,
   toggleFeatured
 } from '@/api/product'
+import { getCategoryList } from '@/api/post'
+import CategoryManager from '@/components/posts/CategoryManager.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -86,6 +127,15 @@ const dialog = useDialog()
 
 const loading = ref(false)
 const products = ref<Product[]>([])
+const categories = ref<any[]>([])
+const showCategoryManager = ref(false)
+
+// Tree state
+const selectedKeys = ref<string[]>([])
+const expandedKeys = ref<string[]>([])
+
+// 从 URL 查询参数获取 menuId
+const menuId = computed(() => route.query.menuId as string | undefined)
 
 const searchKeyword = ref('')
 const activeFilter = ref<boolean | null>(null)
@@ -196,6 +246,44 @@ const pagination = computed(() => ({
   onUpdatePageSize: handlePageSizeChange
 }))
 
+// Build tree structure from flat categories
+const categoryTreeData = computed<TreeOption[]>(() => {
+  const categoryMap = new Map<string, TreeOption>()
+  const roots: TreeOption[] = []
+
+  // Add "全部" option at the top
+  roots.push({
+    key: 'all',
+    label: '全部',
+    isLeaf: true
+  })
+
+  // First pass: create map
+  categories.value.forEach((cat) => {
+    const count = cat.productsCount || 0
+    categoryMap.set(cat.id, {
+      key: cat.id,
+      label: `${cat.name} ${count > 0 ? `(${count})` : ''}`,
+      children: []
+    })
+  })
+
+  // Second pass: build tree
+  categories.value.forEach((cat) => {
+    const node = categoryMap.get(cat.id)!
+    if (cat.parentId) {
+      const parent = categoryMap.get(cat.parentId)
+      if (parent) {
+        parent.children!.push(node)
+      }
+    } else {
+      roots.push(node)
+    }
+  })
+
+  return roots
+})
+
 async function loadProducts() {
   try {
     loading.value = true
@@ -219,6 +307,40 @@ async function loadProducts() {
   } finally {
     loading.value = false
   }
+}
+
+async function loadCategories() {
+  try {
+    // 只加载当前菜单项的分类
+    const params = menuId.value ? { menuItemId: menuId.value } : {}
+    const categoryList = await getCategoryList(params)
+    categories.value = categoryList
+    categoryOptions.value = categoryList.map(cat => ({
+      label: cat.name,
+      value: cat.id
+    }))
+  } catch (error) {
+    message.error('加载分类失败')
+    console.error(error)
+  }
+}
+
+// Handle tree node selection
+function handleCategorySelect(keys: string[]) {
+  selectedKeys.value = keys
+  if (keys.length > 0) {
+    const selectedKey = keys[0]
+    categoryFilter.value = selectedKey === 'all' ? null : selectedKey
+  } else {
+    categoryFilter.value = null
+  }
+  currentPage.value = 1
+  loadProducts()
+}
+
+// Handle tree expansion
+function handleExpandedKeysChange(keys: string[]) {
+  expandedKeys.value = keys
 }
 
 function handleCreate() {
@@ -296,7 +418,9 @@ function handlePageSizeChange(size: number) {
 }
 
 onMounted(() => {
+  selectedKeys.value = ['all'] // Select "全部" by default
   loadProducts()
+  loadCategories()
 })
 
 defineExpose({
@@ -317,5 +441,51 @@ defineExpose({
 <style scoped>
 .product-list {
   padding: 16px;
+  height: calc(100vh - 100px);
+  overflow: hidden;
+}
+
+.product-list-container {
+  display: flex;
+  gap: 16px;
+  height: 100%;
+}
+
+.category-sidebar {
+  width: 280px;
+  flex-shrink: 0;
+  background: #fff;
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.category-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e8e8e8;
+}
+
+.category-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+}
+
+.category-tree-container {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.content-area {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
 }
 </style>

@@ -36,6 +36,14 @@ export class ProductController {
     return this.productService.findAll(query);
   }
 
+  @Get('by-slug/:slug')
+  @ApiOperation({ summary: '根据slug获取产品详情' })
+  @ApiResponse({ status: 200, description: '获取成功', type: ProductResponseDto })
+  @ApiResponse({ status: 404, description: '产品未找到' })
+  async getBySlug(@Param('slug') slug: string) {
+    return this.productService.findBySlug(slug);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: '获取产品详情' })
   @ApiResponse({ status: 200, description: '获取成功', type: ProductResponseDto })

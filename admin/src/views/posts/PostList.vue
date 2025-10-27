@@ -1,69 +1,97 @@
 <template>
   <div class="post-list">
-    <n-space vertical :size="16">
-      <!-- Header -->
-      <n-space justify="space-between" align="center">
-        <h2>文章管理</h2>
-        <n-button type="primary" @click="handleCreate">
-          <template #icon><n-icon><Add /></n-icon></template>
-          新建文章
-        </n-button>
-      </n-space>
+    <div class="post-list-container">
+      <!-- Left Sidebar: Category Tree -->
+      <div class="category-sidebar">
+        <div class="category-header">
+          <h3>文章分类</h3>
+          <n-button text @click="showCategoryManager = true">
+            <template #icon><n-icon><Settings /></n-icon></template>
+            管理
+          </n-button>
+        </div>
+        <div class="category-tree-container">
+          <n-alert v-if="!menuId" type="warning" style="margin-bottom: 12px" :bordered="false">
+            请从左侧菜单点击相应栏目进入，以查看对应的分类
+          </n-alert>
+          <n-tree
+            block-line
+            :data="categoryTreeData"
+            :selected-keys="selectedKeys"
+            :expanded-keys="expandedKeys"
+            @update:selected-keys="handleCategorySelect"
+            @update:expanded-keys="handleExpandedKeysChange"
+          />
+        </div>
+      </div>
 
-      <!-- Filters -->
-      <n-space>
-        <n-input
-          v-model:value="searchKeyword"
-          placeholder="搜索标题或内容"
-          clearable
-          style="width: 240px"
-          @keyup.enter="handleSearch"
-        >
-          <template #prefix><n-icon><Search /></n-icon></template>
-        </n-input>
+      <!-- Right Content Area -->
+      <div class="content-area">
+        <n-space vertical :size="16">
+          <!-- Header -->
+          <n-space justify="space-between" align="center">
+            <h2>文章管理</h2>
+            <n-button type="primary" @click="handleCreate">
+              <template #icon><n-icon><Add /></n-icon></template>
+              新建文章
+            </n-button>
+          </n-space>
 
-        <n-select
-          v-model:value="statusFilter"
-          placeholder="状态"
-          clearable
-          style="width: 120px"
-          :options="statusOptions"
-          @update:value="loadPosts"
-        />
+          <!-- Filters -->
+          <n-space>
+            <n-input
+              v-model:value="searchKeyword"
+              placeholder="搜索标题或内容"
+              clearable
+              style="width: 240px"
+              @keyup.enter="handleSearch"
+            >
+              <template #prefix><n-icon><Search /></n-icon></template>
+            </n-input>
 
-        <n-select
-          v-model:value="categoryFilter"
-          placeholder="分类"
-          clearable
-          style="width: 150px"
-          :options="categoryOptions"
-          @update:value="loadPosts"
-        />
+            <n-select
+              v-model:value="statusFilter"
+              placeholder="状态"
+              clearable
+              style="width: 120px"
+              :options="statusOptions"
+              @update:value="loadPosts"
+            />
 
-        <n-button @click="handleSearch">搜索</n-button>
-        <n-button @click="handleReset">重置</n-button>
-        <n-button @click="showCategoryManager = true">管理分类</n-button>
-        <n-button @click="showTagManager = true">管理标签</n-button>
-      </n-space>
+            <n-select
+              v-model:value="categoryFilter"
+              placeholder="分类"
+              clearable
+              style="width: 150px"
+              :options="categoryOptions"
+              @update:value="loadPosts"
+            />
 
-      <!-- Table -->
-      <n-data-table
-        :columns="columns"
-        :data="posts"
-        :loading="loading"
-        :pagination="pagination"
-        @update:page="handlePageChange"
-      />
-    </n-space>
+            <n-button @click="handleSearch">搜索</n-button>
+            <n-button @click="handleReset">重置</n-button>
+            <n-button @click="showTagManager = true">管理标签</n-button>
+          </n-space>
+
+          <!-- Table -->
+          <n-data-table
+            :columns="columns"
+            :data="posts"
+            :loading="loading"
+            :pagination="pagination"
+            @update:page="handlePageChange"
+          />
+        </n-space>
+      </div>
+    </div>
 
     <!-- Category Manager Modal -->
     <n-modal
       v-model:show="showCategoryManager"
       preset="card"
       title="分类管理"
-      style="width: 600px"
+      style="width: 90%; max-width: 1200px"
     >
-      <category-manager @update="loadCategories" />
+      <category-manager :menu-item-id="menuId" @update="loadCategories" />
     </n-modal>
 
     <!-- Tag Manager Modal -->
@@ -81,8 +109,8 @@
 <script setup lang="ts">
 import { ref, onMounted, h, computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { useMessage, useDialog, NButton, NSpace, NTag, type DataTableColumns } from 'naive-ui'
-import { Add, Search } from '@vicons/ionicons5'
+import { useMessage, useDialog, NButton, NSpace, NTag, NAlert, type DataTableColumns, type TreeOption } from 'naive-ui'
+import { Add, Search, Settings } from '@vicons/ionicons5'
 import type { Post, Category, Tag } from '@/types/post'
 import {
   getPostList,
@@ -104,6 +132,10 @@ const loading = ref(false)
 const posts = ref<Post[]>([])
 const categories = ref<Category[]>([])
 const tags = ref<Tag[]>([])
+
+// Tree state
+const selectedKeys = ref<string[]>([])
+const expandedKeys = ref<string[]>([])
 
 const searchKeyword = ref('')
 const statusFilter = ref<string | null>(null)
@@ -208,6 +240,44 @@ const pagination = ref({
   pageSizes: [10, 20, 50, 100]
 })
 
+// Build tree structure from flat categories
+const categoryTreeData = computed<TreeOption[]>(() => {
+  const categoryMap = new Map<string, TreeOption>()
+  const roots: TreeOption[] = []
+
+  // Add "全部" option at the top
+  roots.push({
+    key: 'all',
+    label: '全部',
+    isLeaf: true
+  })
+
+  // First pass: create map
+  categories.value.forEach((cat) => {
+    const count = cat.postsCount || 0
+    categoryMap.set(cat.id, {
+      key: cat.id,
+      label: `${cat.name} ${count > 0 ? `(${count})` : ''}`,
+      children: []
+    })
+  })
+
+  // Second pass: build tree
+  categories.value.forEach((cat) => {
+    const node = categoryMap.get(cat.id)!
+    if (cat.parentId) {
+      const parent = categoryMap.get(cat.parentId)
+      if (parent) {
+        parent.children!.push(node)
+      }
+    } else {
+      roots.push(node)
+    }
+  })
+
+  return roots
+})
+
 async function loadPosts() {
   try {
     loading.value = true
@@ -233,7 +303,9 @@ async function loadPosts() {
 
 async function loadCategories() {
   try {
-    categories.value = await getCategoryList()
+    // 只加载当前菜单项的分类
+    const params = menuId.value ? { menuItemId: menuId.value } : {}
+    categories.value = await getCategoryList(params)
     categoryOptions.value = categories.value.map(cat => ({
       label: cat.name,
       value: cat.id
@@ -241,6 +313,24 @@ async function loadCategories() {
   } catch (error) {
     console.error('加载分类失败', error)
   }
+}
+
+// Handle tree node selection
+function handleCategorySelect(keys: string[]) {
+  selectedKeys.value = keys
+  if (keys.length > 0) {
+    const selectedKey = keys[0]
+    categoryFilter.value = selectedKey === 'all' ? null : selectedKey
+  } else {
+    categoryFilter.value = null
+  }
+  currentPage.value = 1
+  loadPosts()
+}
+
+// Handle tree expansion
+function handleExpandedKeysChange(keys: string[]) {
+  expandedKeys.value = keys
 }
 
 async function loadTags() {
@@ -325,6 +415,7 @@ watch(menuId, () => {
 })
 
 onMounted(() => {
+  selectedKeys.value = ['all'] // Select "全部" by default
   loadPosts()
   loadCategories()
   loadTags()
@@ -347,5 +438,51 @@ defineExpose({
 <style scoped>
 .post-list {
   padding: 16px;
+  height: calc(100vh - 100px);
+  overflow: hidden;
+}
+
+.post-list-container {
+  display: flex;
+  gap: 16px;
+  height: 100%;
+}
+
+.category-sidebar {
+  width: 280px;
+  flex-shrink: 0;
+  background: #fff;
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.category-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e8e8e8;
+}
+
+.category-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+}
+
+.category-tree-container {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.content-area {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
 }
 </style>

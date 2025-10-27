@@ -175,6 +175,37 @@ export class PostService {
     return post;
   }
 
+  async findBySlug(slug: string): Promise<Post> {
+    const post = await this.prisma.post.findUnique({
+      where: { slug },
+      include: {
+        postCategories: {
+          include: {
+            category: true,
+          },
+        },
+        postTags: {
+          include: {
+            tag: true,
+          },
+        },
+        author: {
+          select: {
+            id: true,
+            email: true,
+            displayName: true,
+          },
+        },
+      },
+    });
+
+    if (!post) {
+      throw new NotFoundException('文章不存在');
+    }
+
+    return post;
+  }
+
   async update(id: string, updatePostDto: UpdatePostDto, user: any): Promise<Post> {
     const post = await this.prisma.post.findUnique({
       where: { id },

@@ -21,23 +21,48 @@ echo [信息] 正在停止现有的 Docms 服务...
 echo [INFO] Stopping existing Docms services...
 echo.
 
-:: 停止API服务
-taskkill /FI "WINDOWTITLE eq Docms API*" /F 2>nul
+:: 停止API服务 (Window Title)
+echo [信息] 停止API服务...
+taskkill /FI "WINDOWTITLE eq Docms API*" /F >nul 2>nul
 
-:: 停止Admin服务
-taskkill /FI "WINDOWTITLE eq Docms Admin*" /F 2>nul
+:: 停止Admin服务 (Window Title)
+echo [信息] 停止Admin服务...
+taskkill /FI "WINDOWTITLE eq Docms Admin*" /F >nul 2>nul
 
-:: 清理端口占用
+:: 停止Website服务 (Window Title)
+echo [信息] 停止Website服务...
+taskkill /FI "WINDOWTITLE eq Docms Website*" /F >nul 2>nul
+
+:: 等待1秒让进程完全停止
+timeout /t 1 /nobreak >nul
+
+:: 清理端口占用 - API端口 3000
+echo [信息] 清理端口 3000...
 for /f "tokens=5" %%a in ('netstat -aon ^| findstr :3000 ^| findstr LISTENING 2^>nul') do (
-    taskkill /F /PID %%a 2>nul
+    echo [信息] 终止进程 PID: %%a (端口 3000)
+    taskkill /F /PID %%a >nul 2>nul
 )
 
+:: 清理端口占用 - Admin端口 5173
+echo [信息] 清理端口 5173...
 for /f "tokens=5" %%a in ('netstat -aon ^| findstr :5173 ^| findstr LISTENING 2^>nul') do (
-    taskkill /F /PID %%a 2>nul
+    echo [信息] 终止进程 PID: %%a (端口 5173)
+    taskkill /F /PID %%a >nul 2>nul
 )
 
-echo [成功] 现有服务已停止
-echo [SUCCESS] Existing services stopped
+:: 清理端口占用 - Website端口 3001
+echo [信息] 清理端口 3001...
+for /f "tokens=5" %%a in ('netstat -aon ^| findstr :3001 ^| findstr LISTENING 2^>nul') do (
+    echo [信息] 终止进程 PID: %%a (端口 3001)
+    taskkill /F /PID %%a >nul 2>nul
+)
+
+:: 再等待1秒确保端口完全释放
+timeout /t 1 /nobreak >nul
+
+echo.
+echo [成功] 现有服务已停止，端口已释放
+echo [SUCCESS] Existing services stopped, ports released
 echo.
 
 :: 检查Node.js是否安装
@@ -120,6 +145,26 @@ if not exist "node_modules\" (
 )
 cd ..
 
+:: Website 依赖
+if exist "website\" (
+    echo.
+    echo [信息] 检查 Website 依赖...
+    cd website
+    if not exist "node_modules\" (
+        echo [信息] 安装 Website 依赖...
+        call npm install
+        if %errorlevel% neq 0 (
+            echo [错误] Website 依赖安装失败
+            echo [ERROR] Website dependencies installation failed
+            pause
+            exit /b 1
+        )
+    ) else (
+        echo [信息] Website 依赖已存在
+    )
+    cd ..
+)
+
 echo.
 echo [成功] 依赖检查完成
 echo [SUCCESS] Dependencies check completed
@@ -145,6 +190,19 @@ echo [信息] 在新窗口中启动 Admin 开发服务（热重载）...
 echo [INFO] Starting Admin dev server (hot reload) in new window...
 start "Docms Admin Dev Server" cmd /k "cd /d %~dp0admin && echo ================================ && echo  Docms Admin Dev Server && echo  开发模式 (热重载) && echo  运行在: http://localhost:5173 && echo ================================ && echo. && npm run dev"
 
+:: 等待2秒让Admin启动
+timeout /t 2 /nobreak >nul
+
+:: 检查Website目录是否存在
+if exist "website\" (
+    echo [信息] 在新窗口中启动 Website 开发服务（热重载）...
+    echo [INFO] Starting Website dev server (hot reload) in new window...
+    start "Docms Website Dev Server" cmd /k "cd /d %~dp0website && echo ================================ && echo  Docms Website Dev Server && echo  开发模式 (热重载) && echo  运行在: http://localhost:3001 && echo ================================ && echo. && npm run dev"
+) else (
+    echo [信息] Website 目录不存在，跳过启动
+    echo [INFO] Website directory not found, skipping...
+)
+
 echo.
 echo ========================================
 echo [步骤 3/4] 启动完成
@@ -159,6 +217,9 @@ echo --------------------------------
 echo API Server:   http://localhost:3000
 echo API Docs:     http://localhost:3000/api
 echo Admin Panel:  http://localhost:5173
+if exist "website\" (
+    echo Website:      http://localhost:3001
+)
 echo --------------------------------
 echo.
 echo [特性] Features:

@@ -68,3 +68,27 @@ export async function updateRolePermissions(role: string, permissions: any): Pro
   const response = await http.put<any>(`/permissions/${role}`, permissions)
   return response.data.data
 }
+
+// Update user profile
+export async function updateUserProfile(data: {
+  displayName?: string
+  avatar?: string
+}): Promise<User> {
+  const response = await http.put<any>('/auth/profile', data)
+  return response.data.data
+}
+
+// Change password
+export async function changePassword(data: {
+  oldPassword: string
+  newPassword: string
+}): Promise<void> {
+  await http.post('/auth/change-password', data)
+}
+
+// Reset user password (admin only)
+export async function resetUserPassword(id: string, data: {
+  newPassword: string
+}): Promise<void> {
+  await http.post(`/users/${id}/reset-password`, data)
+}

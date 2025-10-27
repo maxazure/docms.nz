@@ -17,6 +17,15 @@ export class CreateCategoryDto {
   slug: string;
 
   @ApiProperty({
+    description: '所属菜单项ID',
+    example: 'menu-item-id',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  menuItemId?: string;
+
+  @ApiProperty({
     description: '父分类ID',
     example: 'cat-parent-id',
     required: false,
@@ -93,6 +102,15 @@ export class CategoryQueryDto {
   @IsBoolean()
   @IsOptional()
   includeInactive?: boolean;
+
+  @ApiProperty({
+    description: '按菜单项ID过滤',
+    example: 'menu-item-id',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  menuItemId?: string;
 }
 
 export class CategoryResponseDto {

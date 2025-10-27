@@ -31,9 +31,10 @@ if [ -f "logs/admin.pid" ]; then
     rm -f logs/admin.pid
 fi
 
-# Kill processes on ports 3000 and 5173
+# Kill processes on ports 3000, 5173, and 3001
 lsof -ti:3000 | xargs kill -9 2>/dev/null
 lsof -ti:5173 | xargs kill -9 2>/dev/null
+lsof -ti:3001 | xargs kill -9 2>/dev/null
 
 echo "[成功] 现有服务已停止"
 echo "[SUCCESS] Existing services stopped"
@@ -112,6 +113,25 @@ else
 fi
 cd ..
 
+# Website dependencies
+if [ -d "website" ]; then
+    echo ""
+    echo "[信息] 检查 Website 依赖..."
+    cd website
+    if [ ! -d "node_modules" ]; then
+        echo "[信息] 安装 Website 依赖..."
+        npm install
+        if [ $? -ne 0 ]; then
+            echo "[错误] Website 依赖安装失败"
+            echo "[ERROR] Website dependencies installation failed"
+            exit 1
+        fi
+    else
+        echo "[信息] Website 依赖已存在"
+    fi
+    cd ..
+fi
+
 echo ""
 echo "[成功] 依赖检查完成"
 echo "[SUCCESS] Dependencies check completed"
@@ -145,6 +165,19 @@ ADMIN_PID=$!
 echo "[信息] Admin Server PID: $ADMIN_PID"
 cd ..
 
+# Start Website if exists
+WEBSITE_PID=""
+if [ -d "website" ]; then
+    sleep 2
+    echo "[信息] 启动 Website 开发服务（后台运行）..."
+    echo "[INFO] Starting Website dev server (background)..."
+    cd website
+    npm run dev > ../logs/website.log 2>&1 &
+    WEBSITE_PID=$!
+    echo "[信息] Website Server PID: $WEBSITE_PID"
+    cd ..
+fi
+
 echo ""
 echo "========================================"
 echo "[步骤 3/4] 启动完成"
@@ -159,27 +192,44 @@ echo "--------------------------------"
 echo "API Server:   http://localhost:3000"
 echo "API Docs:     http://localhost:3000/api"
 echo "Admin Panel:  http://localhost:5173"
+if [ -d "website" ]; then
+    echo "Website:      http://localhost:3001"
+fi
 echo "--------------------------------"
 echo ""
 echo "进程信息 / Process Info:"
 echo "API PID:      $API_PID"
 echo "Admin PID:    $ADMIN_PID"
+if [ -n "$WEBSITE_PID" ]; then
+    echo "Website PID:  $WEBSITE_PID"
+fi
 echo ""
 echo "日志文件 / Log Files:"
 echo "API Log:      logs/api.log"
 echo "Admin Log:    logs/admin.log"
+if [ -d "website" ]; then
+    echo "Website Log:  logs/website.log"
+fi
 echo ""
 echo "[提示] 查看日志: tail -f logs/api.log 或 tail -f logs/admin.log"
 echo "[TIP] View logs: tail -f logs/api.log or tail -f logs/admin.log"
 echo ""
-echo "[提示] 停止服务: kill $API_PID $ADMIN_PID"
-echo "[TIP] Stop services: kill $API_PID $ADMIN_PID"
+if [ -n "$WEBSITE_PID" ]; then
+    echo "[提示] 停止服务: kill $API_PID $ADMIN_PID $WEBSITE_PID"
+    echo "[TIP] Stop services: kill $API_PID $ADMIN_PID $WEBSITE_PID"
+else
+    echo "[提示] 停止服务: kill $API_PID $ADMIN_PID"
+    echo "[TIP] Stop services: kill $API_PID $ADMIN_PID"
+fi
 echo ""
 
 # Save PIDs to file for easy stopping
 mkdir -p logs
 echo $API_PID > logs/api.pid
 echo $ADMIN_PID > logs/admin.pid
+if [ -n "$WEBSITE_PID" ]; then
+    echo $WEBSITE_PID > logs/website.pid
+fi
 
 echo "[信息] PID 已保存到 logs/*.pid"
 echo "[INFO] PIDs saved to logs/*.pid"
